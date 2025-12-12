@@ -1,0 +1,262 @@
+{
+  "matches": [
+    {
+      "id": 4813576,
+      "round": "21",
+      "roundName": 21,
+      "pageUrl": "/matches/liverpool-vs-arsenal/2tmaz7#4813576",
+      "home": {
+        "id": 8650,
+        "name": "Liverpool",
+        "shortName": "Liverpool"
+      },
+      "away": {
+        "id": 9825,
+        "name": "Arsenal",
+        "shortName": "Arsenal"
+      },
+      "status": {
+        "utcTime": "2026-01-08T20:00:00Z",
+        "started": false,
+        "cancelled": false,
+        "finished": false
+      },
+      "league": {
+        "id": 47,
+        "name": "Premier League",
+        "country": "England",
+        "countryCode": "GB"
+      }
+    },
+    {
+      "id": 4813580,
+      "round": "21",
+      "roundName": 21,
+      "pageUrl": "/matches/everton-vs-wolverhampton-wanderers/2o21#4813580",
+      "home": {
+        "id": 8668,
+        "name": "Everton",
+        "shortName": "Everton"
+      },
+      "away": {
+        "id": 8602,
+        "name": "Wolverhampton Wanderers",
+        "shortName": "Wolves"
+      },
+      "status": {
+        "utcTime": "2026-01-07T19:30:00Z",
+        "started": true,
+        "cancelled": false,
+        "finished": false,
+        "liveTime": {
+          "short": "45+2"
+        },
+        "score": {
+          "home": 2,
+          "away": 1
+        }
+      },
+      "league": {
+        "id": 47,
+        "name": "Premier League",
+        "country": "England",
+        "countryCode": "GB"
+      }
+    },
+    {
+      "id": 4813582,
+      "round": "21",
+      "roundName": 21,
+      "pageUrl": "/matches/manchester-city-vs-brighton-hove-albion/2vnwg2#4813582",
+      "home": {
+        "id": 8456,
+        "name": "Manchester City",
+        "shortName": "Man City"
+      },
+      "away": {
+        "id": 10204,
+        "name": "Brighton & Hove Albion",
+        "shortName": "Brighton"
+      },
+      "status": {
+        "utcTime": "2026-01-07T19:30:00Z",
+        "started": true,
+        "cancelled": false,
+        "finished": true,
+        "liveTime": {
+          "short": "FT"
+        },
+        "score": {
+          "home": 3,
+          "away": 1
+        }
+      },
+      "league": {
+        "id": 47,
+        "name": "Premier League",
+        "country": "England",
+        "countryCode": "GB"
+      }
+    }
+  ],
+  "matchDetails": {
+    "id": 4813580,
+    "round": "21",
+    "roundName": 21,
+    "pageUrl": "/matches/everton-vs-wolverhampton-wanderers/2o21#4813580",
+    "home": {
+      "id": 8668,
+      "name": "Everton",
+      "shortName": "Everton"
+    },
+    "away": {
+      "id": 8602,
+      "name": "Wolverhampton Wanderers",
+      "shortName": "Wolves"
+    },
+    "status": {
+      "utcTime": "2026-01-07T19:30:00Z",
+      "started": true,
+      "cancelled": false,
+      "finished": false,
+      "liveTime": {
+        "short": "45+2"
+      },
+      "score": {
+        "home": 2,
+        "away": 1
+      }
+    },
+    "league": {
+      "id": 47,
+      "name": "Premier League",
+      "country": "England",
+      "countryCode": "GB"
+    },
+    "events": [
+      {
+        "id": 1,
+        "minute": 12,
+        "type": "goal",
+        "teamId": 8668,
+        "player": "Dominic Calvert-Lewin",
+        "assist": "Dwight McNeil"
+      },
+      {
+        "id": 2,
+        "minute": 28,
+        "type": "card",
+        "teamId": 8602,
+        "player": "Rúben Neves",
+        "eventType": "yellow"
+      },
+      {
+        "id": 3,
+        "minute": 35,
+        "type": "goal",
+        "teamId": 8602,
+        "player": "Hwang Hee-chan"
+      },
+      {
+        "id": 4,
+        "minute": 42,
+        "type": "goal",
+        "teamId": 8668,
+        "player": "Abdoulaye Doucouré"
+      },
+      {
+        "id": 5,
+        "minute": 44,
+        "type": "substitution",
+        "teamId": 8602,
+        "player": "Pedro Neto",
+        "eventType": "out"
+      },
+      {
+        "id": 6,
+        "minute": 44,
+        "type": "substitution",
+        "teamId": 8602,
+        "player": "Fábio Silva",
+        "eventType": "in"
+      }
+    ]
+  },
+  "leagueTable": {
+    "data": {
+      "table": [
+        {
+          "id": 8650,
+          "name": "Liverpool",
+          "shortName": "Liverpool",
+          "rank": 1,
+          "played": 20,
+          "wins": 15,
+          "draws": 3,
+          "losses": 2,
+          "goalsFor": 45,
+          "goalsAgainst": 18,
+          "goalDifference": 27,
+          "points": 48
+        },
+        {
+          "id": 8456,
+          "name": "Manchester City",
+          "shortName": "Man City",
+          "rank": 2,
+          "played": 20,
+          "wins": 14,
+          "draws": 4,
+          "losses": 2,
+          "goalsFor": 42,
+          "goalsAgainst": 20,
+          "goalDifference": 22,
+          "points": 46
+        },
+        {
+          "id": 9825,
+          "name": "Arsenal",
+          "shortName": "Arsenal",
+          "rank": 3,
+          "played": 20,
+          "wins": 13,
+          "draws": 5,
+          "losses": 2,
+          "goalsFor": 38,
+          "goalsAgainst": 19,
+          "goalDifference": 19,
+          "points": 44
+        },
+        {
+          "id": 10260,
+          "name": "Manchester United",
+          "shortName": "Man United",
+          "rank": 4,
+          "played": 20,
+          "wins": 12,
+          "draws": 4,
+          "losses": 4,
+          "goalsFor": 35,
+          "goalsAgainst": 22,
+          "goalDifference": 13,
+          "points": 40
+        },
+        {
+          "id": 8586,
+          "name": "Tottenham Hotspur",
+          "shortName": "Tottenham",
+          "rank": 5,
+          "played": 20,
+          "wins": 11,
+          "draws": 5,
+          "losses": 4,
+          "goalsFor": 33,
+          "goalsAgainst": 24,
+          "goalDifference": 9,
+          "points": 38
+        }
+      ]
+    }
+  }
+}
+
