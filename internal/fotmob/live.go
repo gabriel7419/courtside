@@ -169,7 +169,7 @@ func (p *LiveUpdateParser) formatEvent(event api.MatchEvent, homeTeam, awayTeam 
 		if subType == "in" {
 			arrow = "←"
 		}
-		return fmt.Sprintf("%d' 🔄 %s %s - %s", event.Minute, arrow, player, teamName)
+		return fmt.Sprintf("%d' Substitution: %s %s - %s", event.Minute, arrow, player, teamName)
 
 	default:
 		player := ""
