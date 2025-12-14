@@ -111,11 +111,9 @@ func (c *Client) MatchesByDate(ctx context.Context, date time.Time) ([]api.Match
 			// Filter matches for the requested date and add league info
 			// Note: Matches are sorted chronologically, so we need to check all matches
 			leagueMatches := make([]api.Match, 0)
-			checkedCount := 0
 			for _, m := range leagueResponse.Fixtures.AllMatches {
 				// Check if match is on the requested date
 				if m.Status.UTCTime != "" {
-					checkedCount++
 					// Parse the UTC time - FotMob sometimes uses .000Z format
 					var matchTime time.Time
 					var err error
