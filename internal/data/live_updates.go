@@ -3,7 +3,6 @@ package data
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 // LiveUpdateGenerator generates mock live updates for a match.
@@ -23,8 +22,8 @@ func NewLiveUpdateGenerator(matchID int) *LiveUpdateGenerator {
 	}
 }
 
-// GetNextUpdate returns the next live update string.
-func (g *LiveUpdateGenerator) GetNextUpdate() (string, bool) {
+// NextUpdate returns the next live update string.
+func (g *LiveUpdateGenerator) NextUpdate() (string, bool) {
 	if g.index >= len(g.updates) {
 		return "", false
 	}
@@ -90,6 +89,6 @@ func GenerateRandomUpdate(matchID int) string {
 		"Goal kick",
 	}
 
-	rand.Seed(time.Now().UnixNano())
+	// Use global random generator (no need to seed in Go 1.20+)
 	return updates[rand.Intn(len(updates))]
 }

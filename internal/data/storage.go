@@ -13,8 +13,8 @@ const (
 	configDir = ".golazo"
 )
 
-// GetConfigDir returns the path to the golazo config directory.
-func GetConfigDir() (string, error) {
+// ConfigDir returns the path to the golazo config directory.
+func ConfigDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("get home directory: %w", err)
@@ -28,13 +28,13 @@ func GetConfigDir() (string, error) {
 	return configPath, nil
 }
 
-// GetMockDataPath returns the path to the mock data file.
-func GetMockDataPath() (string, error) {
-	configDir, err := GetConfigDir()
+// MockDataPath returns the path to the mock data file.
+func MockDataPath() (string, error) {
+	dir, err := ConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(configDir, "matches.json"), nil
+	return filepath.Join(dir, "matches.json"), nil
 }
 
 // LiveUpdate represents a single live update string.
@@ -46,12 +46,12 @@ type LiveUpdate struct {
 
 // SaveLiveUpdate appends a live update to the storage.
 func SaveLiveUpdate(matchID int, update string) error {
-	configDir, err := GetConfigDir()
+	dir, err := ConfigDir()
 	if err != nil {
 		return err
 	}
 
-	updatesFile := filepath.Join(configDir, fmt.Sprintf("updates_%d.json", matchID))
+	updatesFile := filepath.Join(dir, fmt.Sprintf("updates_%d.json", matchID))
 
 	var updates []LiveUpdate
 	if data, err := os.ReadFile(updatesFile); err == nil {
@@ -72,14 +72,14 @@ func SaveLiveUpdate(matchID int, update string) error {
 	return os.WriteFile(updatesFile, data, 0644)
 }
 
-// GetLiveUpdates retrieves live updates for a match.
-func GetLiveUpdates(matchID int) ([]string, error) {
-	configDir, err := GetConfigDir()
+// LiveUpdates retrieves live updates for a match.
+func LiveUpdates(matchID int) ([]string, error) {
+	dir, err := ConfigDir()
 	if err != nil {
 		return nil, err
 	}
 
-	updatesFile := filepath.Join(configDir, fmt.Sprintf("updates_%d.json", matchID))
+	updatesFile := filepath.Join(dir, fmt.Sprintf("updates_%d.json", matchID))
 	data, err := os.ReadFile(updatesFile)
 	if err != nil {
 		return []string{}, nil // Return empty if file doesn't exist

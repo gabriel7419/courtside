@@ -49,7 +49,7 @@ type MockMatchData struct {
 // MockMatches returns multiple mock matches for testing.
 func MockMatches() ([]api.Match, error) {
 	// Try to load from config directory first
-	configPath, err := GetMockDataPath()
+	configPath, err := MockDataPath()
 	if err == nil {
 		if data, err := os.ReadFile(configPath); err == nil {
 			var mockData MockMatchesData
@@ -162,7 +162,7 @@ func getDefaultMockMatches() []api.Match {
 	}
 
 	// Save to config directory for persistence
-	if configPath, err := GetMockDataPath(); err == nil {
+	if configPath, err := MockDataPath(); err == nil {
 		mockData := MockMatchesData{Matches: convertToMockData(matches)}
 		if data, err := json.MarshalIndent(mockData, "", "  "); err == nil {
 			os.WriteFile(configPath, data, 0644)
