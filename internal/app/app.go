@@ -126,8 +126,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Only handle live updates and polling for live matches view
 			if m.currentView == viewLiveMatches {
-			// Detect new events
-			newEvents := m.parser.NewEvents(m.lastEvents, msg.details.Events)
+				// Detect new events
+				newEvents := m.parser.NewEvents(m.lastEvents, msg.details.Events)
 				if len(newEvents) > 0 {
 					// Parse new events into updates
 					updates := m.parser.ParseEvents(newEvents, msg.details.HomeTeam, msg.details.AwayTeam)

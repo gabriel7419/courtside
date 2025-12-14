@@ -17,4 +17,3 @@ func performMainViewCheck(selection int) tea.Cmd {
 		return mainViewCheckMsg{selection: selection}
 	})
 }
-
