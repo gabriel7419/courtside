@@ -16,18 +16,17 @@ const (
 )
 
 // Supported league IDs for API-Sports.io
-// These are the most popular leagues that typically have matches
+// Limited to top 5 most popular leagues to optimize API calls
 var (
 	// SupportedLeagues contains the league IDs that will be queried for matches.
 	// API-Sports.io league IDs.
+	// Reduced to top 5 leagues to minimize API calls while covering major competitions.
 	SupportedLeagues = []int{
 		39,  // Premier League
 		140, // La Liga
 		78,  // Bundesliga
 		135, // Serie A
 		61,  // Ligue 1
-		2,   // Champions League
-		253, // MLS
 	}
 )
 
