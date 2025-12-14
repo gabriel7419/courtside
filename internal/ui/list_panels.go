@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/lipgloss"
@@ -19,7 +20,7 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model) string 
 	listModel.SetSize(availableWidth, availableHeight)
 
 	// Wrap list in panel
-	title := panelTitleStyle.Width(width - 6).Render("Live Matches")
+	title := panelTitleStyle.Width(width - 6).Render(constants.PanelLiveMatches)
 	listView := listModel.View()
 
 	content := lipgloss.JoinVertical(
@@ -49,7 +50,7 @@ func RenderStatsListPanel(width, height int, listModel list.Model) string {
 	listModel.SetSize(availableWidth, availableHeight)
 
 	// Wrap list in panel
-	title := panelTitleStyle.Width(width - 6).Render("Finished Matches")
+	title := panelTitleStyle.Width(width - 6).Render(constants.PanelFinishedMatches)
 	listView := listModel.View()
 
 	content := lipgloss.JoinVertical(

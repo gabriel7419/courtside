@@ -4,6 +4,7 @@ package ui
 import (
 	"strings"
 
+	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/lucasb-eyer/go-colorful"
@@ -40,8 +41,8 @@ var (
 // loading indicates if the spinner should be shown.
 func RenderMainMenu(width, height, selected int, sp spinner.Model, randomSpinner *RandomCharSpinner, loading bool) string {
 	menuItems := []string{
-		"Stats",
-		"Live Matches",
+		constants.MenuStats,
+		constants.MenuLiveMatches,
 	}
 
 	items := make([]string, 0, len(menuItems))
@@ -55,16 +56,9 @@ func RenderMainMenu(width, height, selected int, sp spinner.Model, randomSpinner
 
 	menuContent := strings.Join(items, "\n")
 
-	asciiTitle := `  ________       .__                       
- /  _____/  ____ |  | _____  ____________  
-/   \  ___ /  _ \|  | \__  \ \___   /  _ \ 
-\    \_\  (  <_> )  |__/ __ \_/    (  <_> )
- \______  /\____/|____(____  /_____ \____/ 
-        \/                 \/      \/      `
-
 	// Apply gradient to ASCII title (cyan to red, same as spinner)
-	title := renderGradientText(asciiTitle)
-	help := menuHelpStyle.Render("↑/↓: navigate  Enter: select  q: quit")
+	title := renderGradientText(constants.ASCIITitle)
+	help := menuHelpStyle.Render(constants.HelpMainMenu)
 
 	// Spinner with fixed spacing - always reserve space to prevent movement
 	// Use multiple spinner instances for a longer, more prominent animation
@@ -110,8 +104,8 @@ func renderGradientText(text string) string {
 	}
 
 	// Create gradient colors (same as spinner)
-	startColor, _ := colorful.Hex("#00FFFF") // Cyan
-	endColor, _ := colorful.Hex("#FF0000")   // Red
+	startColor, _ := colorful.Hex(constants.GradientStartColor) // Cyan
+	endColor, _ := colorful.Hex(constants.GradientEndColor)     // Red
 
 	var result strings.Builder
 	for i, line := range lines {

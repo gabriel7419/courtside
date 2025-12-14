@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/0xjuanma/golazo/internal/constants"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/lucasb-eyer/go-colorful"
@@ -25,8 +26,8 @@ func NewRandomCharSpinner() *RandomCharSpinner {
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/~`£€¥")
 
 	// Create gradient: cyan to red (high energy theme)
-	startColor, _ := colorful.Hex("#00FFFF") // Bright cyan
-	endColor, _ := colorful.Hex("#FF0000")   // Bright red
+	startColor, _ := colorful.Hex(constants.GradientStartColor) // Bright cyan
+	endColor, _ := colorful.Hex(constants.GradientEndColor)     // Bright red
 
 	return &RandomCharSpinner{
 		chars:      chars,

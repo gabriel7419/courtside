@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -123,18 +124,18 @@ func RenderMultiPanelView(width, height int, matches []MatchDisplay, selected in
 
 // renderMatchesListPanel renders the top-left panel with the list of live matches.
 func renderMatchesListPanel(width, height int, matches []MatchDisplay, selected int) string {
-	title := panelTitleStyle.Width(width - 6).Render("Live Matches")
+	title := panelTitleStyle.Width(width - 6).Render(constants.PanelLiveMatches)
 
 	items := make([]string, 0, len(matches))
 	contentWidth := width - 6 // Account for border and padding
 
-	if len(matches) == 0 {
+		if len(matches) == 0 {
 		emptyMessage := lipgloss.NewStyle().
 			Foreground(dimColor).
 			Align(lipgloss.Center).
 			Width(contentWidth).
 			PaddingTop(1).
-			Render("No live matches")
+			Render(constants.EmptyNoLiveMatches)
 
 		items = append(items, emptyMessage)
 	} else {
@@ -165,15 +166,15 @@ func renderMatchListItem(match MatchDisplay, selected bool, width int) string {
 	var statusIndicator string
 	statusStyle := lipgloss.NewStyle().Foreground(dimColor).Width(4).Align(lipgloss.Left)
 	if match.Status == api.MatchStatusLive {
-		liveTime := "LIVE"
+		liveTime := constants.StatusLive
 		if match.LiveTime != nil {
 			liveTime = *match.LiveTime
 		}
 		statusIndicator = matchStatusStyle.Render(liveTime)
 	} else if match.Status == api.MatchStatusFinished {
-		statusIndicator = statusStyle.Render("FT")
+		statusIndicator = statusStyle.Render(constants.StatusFinished)
 	} else {
-		statusIndicator = statusStyle.Render("VS")
+		statusIndicator = statusStyle.Render(constants.StatusNotStarted)
 	}
 
 	// Teams - compact display
@@ -237,14 +238,14 @@ func renderMatchListItem(match MatchDisplay, selected bool, width int) string {
 // renderMatchDetailsPanel renders the right panel with match details and live updates.
 func renderMatchDetailsPanel(width, height int, details *api.MatchDetails, liveUpdates []string, sp spinner.Model, loading bool) string {
 	if details == nil {
-		title := panelTitleStyle.Width(width - 6).Render("Minute-by-minute")
+		title := panelTitleStyle.Width(width - 6).Render(constants.PanelMinuteByMinute)
 
 		emptyMessage := lipgloss.NewStyle().
 			Foreground(dimColor).
 			Align(lipgloss.Center).
 			Width(width - 6).
 			PaddingTop(1).
-			Render("Select a match")
+			Render(constants.EmptySelectMatch)
 
 		return panelStyle.
 			Width(width).
@@ -257,7 +258,7 @@ func renderMatchDetailsPanel(width, height int, details *api.MatchDetails, liveU
 	}
 
 	// Panel title
-	title := panelTitleStyle.Width(width - 6).Render("Minute-by-minute")
+	title := panelTitleStyle.Width(width - 6).Render(constants.PanelMinuteByMinute)
 
 	var content strings.Builder
 
@@ -280,15 +281,15 @@ func renderMatchDetailsPanel(width, height int, details *api.MatchDetails, liveU
 	infoStyle := lipgloss.NewStyle().Foreground(dimColor)
 	var statusText string
 	if details.Status == api.MatchStatusLive {
-		liveTime := "LIVE"
+		liveTime := constants.StatusLive
 		if details.LiveTime != nil {
 			liveTime = *details.LiveTime
 		}
 		statusText = matchStatusStyle.Render(liveTime)
 	} else if details.Status == api.MatchStatusFinished {
-		statusText = infoStyle.Render("FT")
+		statusText = infoStyle.Render(constants.StatusFinished)
 	} else {
-		statusText = infoStyle.Render("NS")
+		statusText = infoStyle.Render(constants.StatusNotStartedShort)
 	}
 
 	leagueText := infoStyle.Italic(true).Render(details.League.Name)
@@ -309,13 +310,13 @@ func renderMatchDetailsPanel(width, height int, details *api.MatchDetails, liveU
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(borderColor).
 		Width(width - 6).
-		Render("Updates")
+		Render(constants.PanelUpdates)
 	content.WriteString(updatesTitle)
 	content.WriteString("\n")
 
 	// Show spinner if loading
 	if loading {
-		spinnerText := spinnerStyle.Render(sp.View() + " Fetching...")
+		spinnerText := spinnerStyle.Render(sp.View() + " " + constants.LoadingFetching)
 		content.WriteString(spinnerText)
 		content.WriteString("\n")
 	}
@@ -325,7 +326,7 @@ func renderMatchDetailsPanel(width, height int, details *api.MatchDetails, liveU
 		emptyUpdates := lipgloss.NewStyle().
 			Foreground(dimColor).
 			Padding(0, 0).
-			Render("No updates")
+			Render(constants.EmptyNoUpdates)
 		content.WriteString(emptyUpdates)
 	} else if len(liveUpdates) > 0 {
 		// Show updates in reverse order (newest at top)

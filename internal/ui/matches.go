@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -64,7 +65,7 @@ func RenderLiveMatches(width, height int, matches []MatchDisplay, selected int) 
 	lines := make([]string, 0, len(matches)+3) // +3 for header, empty line, help
 
 	// Header
-	header := matchHeaderStyle.Width(width - 2).Render("Live Matches")
+	header := matchHeaderStyle.Width(width - 2).Render(constants.PanelLiveMatches)
 	lines = append(lines, header)
 	lines = append(lines, "")
 
@@ -73,7 +74,7 @@ func RenderLiveMatches(width, height int, matches []MatchDisplay, selected int) 
 			Foreground(dimColor).
 			Align(lipgloss.Center).
 			Padding(2, 0).
-			Render("No matches available")
+			Render(constants.EmptyNoMatches)
 		lines = append(lines, noMatches)
 	} else {
 		// Render each match
@@ -84,7 +85,7 @@ func RenderLiveMatches(width, height int, matches []MatchDisplay, selected int) 
 	}
 
 	// Help text
-	help := menuHelpStyle.Render("↑/↓: navigate  Esc: back  q: quit")
+	help := menuHelpStyle.Render(constants.HelpMatchesView)
 	lines = append(lines, "")
 	lines = append(lines, help)
 

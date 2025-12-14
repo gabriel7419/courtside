@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -51,7 +52,7 @@ func RenderStatsView(width, height int, matches []MatchDisplay, selected int, de
 
 // renderFinishedMatchesPanel renders the left panel with finished matches list.
 func renderFinishedMatchesPanel(width, height int, matches []MatchDisplay, selected int) string {
-	title := panelTitleStyle.Width(width - 6).Render("Finished Matches")
+	title := panelTitleStyle.Width(width - 6).Render(constants.PanelFinishedMatches)
 
 	items := make([]string, 0, len(matches))
 	contentWidth := width - 6
@@ -62,7 +63,7 @@ func renderFinishedMatchesPanel(width, height int, matches []MatchDisplay, selec
 			Padding(1, 0).
 			Align(lipgloss.Center).
 			Width(contentWidth)
-		items = append(items, emptyStyle.Render("No finished matches"))
+		items = append(items, emptyStyle.Render(constants.EmptyNoFinishedMatches))
 	} else {
 		for i, match := range matches {
 			item := renderFinishedMatchListItem(match, i == selected, contentWidth)
@@ -130,9 +131,9 @@ func renderFinishedMatchListItem(match MatchDisplay, selected bool, width int) s
 
 // renderMatchStatsPanel renders the right panel with high-level match statistics.
 func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string {
-	title := panelTitleStyle.Width(width - 6).Render("Match Statistics")
+	title := panelTitleStyle.Width(width - 6).Render(constants.PanelMatchStatistics)
 
-	if details == nil {
+		if details == nil {
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(dimColor).
 			Padding(1, 0).
@@ -140,7 +141,7 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 			Width(width - 6)
 		content := lipgloss.JoinVertical(
 			lipgloss.Center,
-			emptyStyle.Render("Select a match"),
+			emptyStyle.Render(constants.EmptySelectMatch),
 		)
 		panelContent := lipgloss.JoinVertical(
 			lipgloss.Left,
@@ -189,11 +190,10 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 	}
 
 	// Status
-	statusText := "Finished"
 	statusDisplay := lipgloss.NewStyle().
 		Foreground(secondaryColor).
 		Bold(true).
-		Render("Status: " + statusText)
+		Render(constants.LabelStatus + constants.StatusFinishedText)
 	stats = append(stats, statusDisplay)
 
 	// Events summary
