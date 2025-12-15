@@ -79,6 +79,275 @@ func main() {
 		}
 	}
 	fmt.Printf("  Total finished matches across all supported leagues: %d\n", totalMatches)
+
+	// Test 7: Test date range (1 day, 3 days, 7 days) - simulating actual app behavior
+	fmt.Println("\nTest 7: Testing date ranges (1d, 3d, 7d) - simulating app behavior...")
+	for _, days := range []int{1, 3, 7} {
+		fmt.Printf("\n  Testing %d day(s):\n", days)
+		today := time.Now()
+		dateFrom := today.AddDate(0, 0, -(days - 1))
+		fmt.Printf("    Date range: %s to %s\n", dateFrom.Format("2006-01-02"), today.Format("2006-01-02"))
+
+		totalMatches := 0
+		currentDate := dateFrom
+		for !currentDate.After(today) {
+			dateStr := currentDate.Format("2006-01-02")
+			fmt.Printf("    Date %s:\n", dateStr)
+
+			for _, leagueID := range supportedLeagues {
+				url := fmt.Sprintf("%s/fixtures?date=%s&league=%d&status=FT", baseURL, dateStr, leagueID)
+				req, _ := http.NewRequest("GET", url, nil)
+				req.Header.Set("x-apisports-key", apiKey)
+				client := &http.Client{Timeout: 10 * time.Second}
+				resp, err := client.Do(req)
+				if err == nil && resp.StatusCode == http.StatusOK {
+					var result map[string]interface{}
+					bodyBytes, _ := io.ReadAll(resp.Body)
+					json.Unmarshal(bodyBytes, &result)
+					resp.Body.Close()
+					if response, ok := result["response"].([]interface{}); ok {
+						if len(response) > 0 {
+							fmt.Printf("      League %d: %d matches\n", leagueID, len(response))
+							totalMatches += len(response)
+						}
+					}
+				}
+			}
+
+			currentDate = currentDate.AddDate(0, 0, 1)
+		}
+		fmt.Printf("    Total matches for %d day(s): %d\n", days, totalMatches)
+	}
+
+	// Test 8: Try without status filter (maybe matches aren't marked as FT yet)
+	fmt.Println("\nTest 8: Testing without status filter (all statuses)...")
+	for _, leagueID := range supportedLeagues {
+		url := fmt.Sprintf("%s/fixtures?date=%s&league=%d", baseURL, today, leagueID)
+		fmt.Printf("  League %d: ", leagueID)
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set("x-apisports-key", apiKey)
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var result map[string]interface{}
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			json.Unmarshal(bodyBytes, &result)
+			resp.Body.Close()
+			if response, ok := result["response"].([]interface{}); ok {
+				fmt.Printf("%d matches (all statuses)\n", len(response))
+				if len(response) > 0 {
+					// Show status breakdown
+					statusCount := make(map[string]int)
+					for _, match := range response {
+						if m, ok := match.(map[string]interface{}); ok {
+							if fixture, ok := m["fixture"].(map[string]interface{}); ok {
+								if status, ok := fixture["status"].(map[string]interface{}); ok {
+									if short, ok := status["short"].(string); ok {
+										statusCount[short]++
+									}
+								}
+							}
+						}
+					}
+					fmt.Printf("    Status breakdown: %v\n", statusCount)
+				}
+			}
+		}
+	}
+
+	// Test 9: Check yesterday and day before (matches might finish late)
+	fmt.Println("\nTest 9: Checking yesterday and day before for finished matches...")
+	for i := 1; i <= 2; i++ {
+		checkDate := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		fmt.Printf("\n  Date: %s\n", checkDate)
+		totalMatches := 0
+		for _, leagueID := range supportedLeagues {
+			url := fmt.Sprintf("%s/fixtures?date=%s&league=%d&status=FT", baseURL, checkDate, leagueID)
+			req, _ := http.NewRequest("GET", url, nil)
+			req.Header.Set("x-apisports-key", apiKey)
+			client := &http.Client{Timeout: 10 * time.Second}
+			resp, err := client.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				var result map[string]interface{}
+				bodyBytes, _ := io.ReadAll(resp.Body)
+				json.Unmarshal(bodyBytes, &result)
+				resp.Body.Close()
+				if response, ok := result["response"].([]interface{}); ok {
+					if len(response) > 0 {
+						fmt.Printf("    League %d: %d finished matches\n", leagueID, len(response))
+						totalMatches += len(response)
+					}
+				}
+			}
+		}
+		fmt.Printf("    Total finished matches: %d\n", totalMatches)
+	}
+
+	// Test 10: Try using season parameter (some APIs require season)
+	fmt.Println("\nTest 10: Testing with season parameter (2024)...")
+	currentYear := time.Now().Year()
+	for _, leagueID := range supportedLeagues {
+		url := fmt.Sprintf("%s/fixtures?date=%s&league=%d&season=%d&status=FT", baseURL, today, leagueID, currentYear)
+		fmt.Printf("  League %d: ", leagueID)
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set("x-apisports-key", apiKey)
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var result map[string]interface{}
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			json.Unmarshal(bodyBytes, &result)
+			resp.Body.Close()
+			if response, ok := result["response"].([]interface{}); ok {
+				fmt.Printf("%d matches\n", len(response))
+			}
+		}
+	}
+
+	// Test 11: Analyze what leagues are actually in the 669 matches
+	fmt.Println("\nTest 11: Analyzing leagues in today's finished matches...")
+	url := fmt.Sprintf("%s/fixtures?date=%s&status=FT", baseURL, today)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("x-apisports-key", apiKey)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err == nil && resp.StatusCode == http.StatusOK {
+		var result map[string]interface{}
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		json.Unmarshal(bodyBytes, &result)
+		resp.Body.Close()
+		if response, ok := result["response"].([]interface{}); ok {
+			leagueCount := make(map[int]int)        // league ID -> count
+			leagueNames := make(map[int]string)     // league ID -> name
+			leagueCountries := make(map[int]string) // league ID -> country
+
+			for _, match := range response {
+				if m, ok := match.(map[string]interface{}); ok {
+					if league, ok := m["league"].(map[string]interface{}); ok {
+						if leagueID, ok := league["id"].(float64); ok {
+							id := int(leagueID)
+							leagueCount[id]++
+
+							if name, ok := league["name"].(string); ok {
+								leagueNames[id] = name
+							}
+							if country, ok := league["country"].(string); ok {
+								leagueCountries[id] = country
+							}
+						}
+					}
+				}
+			}
+
+			fmt.Printf("  Found %d unique leagues\n", len(leagueCount))
+			fmt.Println("\n  All leagues with their IDs and match counts:")
+
+			// Sort by count
+			type leagueInfo struct {
+				id      int
+				name    string
+				country string
+				count   int
+			}
+			leagues := make([]leagueInfo, 0, len(leagueCount))
+			for id, count := range leagueCount {
+				leagues = append(leagues, leagueInfo{
+					id:      id,
+					name:    leagueNames[id],
+					country: leagueCountries[id],
+					count:   count,
+				})
+			}
+			// Sort by count (descending)
+			for i := 0; i < len(leagues); i++ {
+				maxIdx := i
+				for j := i + 1; j < len(leagues); j++ {
+					if leagues[j].count > leagues[maxIdx].count {
+						maxIdx = j
+					}
+				}
+				leagues[i], leagues[maxIdx] = leagues[maxIdx], leagues[i]
+			}
+
+			// Show all leagues (or top 50 if too many)
+			maxShow := len(leagues)
+			if maxShow > 50 {
+				maxShow = 50
+			}
+			for i := 0; i < maxShow; i++ {
+				fmt.Printf("    ID: %3d | %-40s | %-20s | %d matches\n",
+					leagues[i].id,
+					leagues[i].name,
+					leagues[i].country,
+					leagues[i].count)
+			}
+			if len(leagues) > 50 {
+				fmt.Printf("    ... and %d more leagues\n", len(leagues)-50)
+			}
+
+			// Check if our supported league IDs exist in the response
+			fmt.Println("\n  Checking our supported league IDs:")
+			supportedLeagueIDs := []int{39, 140, 78, 135, 61}
+			supportedLeagueNames := map[int]string{
+				39:  "Premier League",
+				140: "La Liga",
+				78:  "Bundesliga",
+				135: "Serie A",
+				61:  "Ligue 1",
+			}
+
+			for _, id := range supportedLeagueIDs {
+				if count, exists := leagueCount[id]; exists {
+					name := leagueNames[id]
+					country := leagueCountries[id]
+					fmt.Printf("    ✓ ID %3d (%s, %s): %d matches found\n", id, name, country, count)
+				} else {
+					fmt.Printf("    ✗ ID %3d (%s): NOT FOUND in today's matches\n", id, supportedLeagueNames[id])
+
+					// Try to find leagues with similar names
+					fmt.Printf("      Searching for similar league names...\n")
+					searchTerms := []string{
+						"Premier League", "Premier", "EPL",
+						"La Liga", "Liga",
+						"Bundesliga",
+						"Serie A", "Serie",
+						"Ligue 1", "Ligue",
+					}
+					for _, term := range searchTerms {
+						for foundID, foundName := range leagueNames {
+							if foundName != "" &&
+								(foundName == term ||
+									(len(term) > 5 && len(foundName) > 5 &&
+										(foundName[:5] == term[:5] || foundName[len(foundName)-5:] == term[len(term)-5:]))) {
+								fmt.Printf("      → Found: ID %d - %s (%s) - %d matches\n",
+									foundID, foundName, leagueCountries[foundID], leagueCount[foundID])
+							}
+						}
+					}
+				}
+			}
+
+			// Also check by name matching
+			fmt.Println("\n  Checking by league name (case-insensitive):")
+			for id, expectedName := range supportedLeagueNames {
+				found := false
+				for foundID, foundName := range leagueNames {
+					if foundName == expectedName {
+						fmt.Printf("    ✓ Found '%s' with ID %d (we use %d): %d matches\n",
+							expectedName, foundID, id, leagueCount[foundID])
+						if foundID != id {
+							fmt.Printf("      ⚠ ID MISMATCH! API uses %d, we use %d\n", foundID, id)
+						}
+						found = true
+						break
+					}
+				}
+				if !found {
+					fmt.Printf("    ✗ '%s' not found by exact name match\n", expectedName)
+				}
+			}
+		}
+	}
 }
 
 func testEndpoint(url string, apiKey string) {
