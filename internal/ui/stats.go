@@ -148,28 +148,20 @@ func renderFinishedMatchListItem(match MatchDisplay, selected bool, width int) s
 }
 
 // renderMatchOverviewPanel renders Panel 2: Match Overview & Timeline (right top, 50% height)
+// No hardcoded title - uses list component if data available, otherwise shows empty message
 func renderMatchOverviewPanel(width, height int, details *api.MatchDetails) string {
-	title := panelTitleStyle.Width(width - 6).Render("Match Overview")
-
 	if details == nil {
+		// No data - show empty message without title
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(dimColor).
-			Padding(1, 0).
+			Padding(2, 2).
 			Align(lipgloss.Center).
 			Width(width - 6)
-		content := lipgloss.JoinVertical(
-			lipgloss.Center,
-			emptyStyle.Render(constants.EmptySelectMatch),
-		)
-		panelContent := lipgloss.JoinVertical(
-			lipgloss.Left,
-			title,
-			content,
-		)
+		content := emptyStyle.Render(constants.EmptySelectMatch)
 		panel := panelStyle.
 			Width(width).
 			Height(height).
-			Render(panelContent)
+			Render(content)
 		return panel
 	}
 
@@ -306,11 +298,8 @@ func renderMatchOverviewPanel(width, height int, details *api.MatchDetails) stri
 		}
 	}
 
-	panelContent := lipgloss.JoinVertical(
-		lipgloss.Left,
-		title,
-		lipgloss.JoinVertical(lipgloss.Left, content...),
-	)
+	// No hardcoded title - content is rendered directly
+	panelContent := lipgloss.JoinVertical(lipgloss.Left, content...)
 
 	panel := panelStyle.
 		Width(width).
@@ -321,28 +310,20 @@ func renderMatchOverviewPanel(width, height int, details *api.MatchDetails) stri
 }
 
 // renderMatchStatisticsPanel renders Panel 3: Match Statistics & Performance (right bottom, 50% height)
+// No hardcoded title - uses list component if data available, otherwise shows empty message
 func renderMatchStatisticsPanel(width, height int, details *api.MatchDetails) string {
-	title := panelTitleStyle.Width(width - 6).Render("Match Statistics")
-
 	if details == nil {
+		// No data - show empty message without title
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(dimColor).
-			Padding(1, 0).
+			Padding(2, 2).
 			Align(lipgloss.Center).
 			Width(width - 6)
-		content := lipgloss.JoinVertical(
-			lipgloss.Center,
-			emptyStyle.Render(constants.EmptySelectMatch),
-		)
-		panelContent := lipgloss.JoinVertical(
-			lipgloss.Left,
-			title,
-			content,
-		)
+		content := emptyStyle.Render(constants.EmptySelectMatch)
 		panel := panelStyle.
 			Width(width).
 			Height(height).
-			Render(panelContent)
+			Render(content)
 		return panel
 	}
 
@@ -394,11 +375,8 @@ func renderMatchStatisticsPanel(width, height int, details *api.MatchDetails) st
 		}
 	}
 
-	panelContent := lipgloss.JoinVertical(
-		lipgloss.Left,
-		title,
-		lipgloss.JoinVertical(lipgloss.Left, stats...),
-	)
+	// No hardcoded title - content is rendered directly
+	panelContent := lipgloss.JoinVertical(lipgloss.Left, stats...)
 
 	panel := panelStyle.
 		Width(width).

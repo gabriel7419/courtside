@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
@@ -35,111 +34,68 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model) string 
 
 // RenderStatsListPanel renders the left panel for stats view using bubbletea list component.
 // Note: listModel is passed by value, so SetSize must be called before this function.
-// upcomingMatches are displayed in the bottom half when dateRange is 1 (1-day selection).
-func RenderStatsListPanel(width, height int, listModel list.Model, dateRange int, apiKeyMissing bool, upcomingMatches []MatchDisplay) string {
+// Minimal design matching live view - uses list headers instead of hardcoded titles.
+// List titles are only shown when there are items. Empty lists show gray messages instead.
+// For 1-day view, shows both finished and upcoming lists stacked vertically.
+func RenderStatsListPanel(width, height int, finishedList list.Model, upcomingList list.Model, dateRange int, apiKeyMissing bool) string {
 	// Render date range selector
 	dateSelector := renderDateRangeSelector(width-6, dateRange)
 
-	// Wrap list in panel
-	title := panelTitleStyle.Width(width - 6).Render(constants.PanelFinishedMatches)
+	emptyStyle := lipgloss.NewStyle().
+		Foreground(dimColor).
+		Padding(2, 2).
+		Align(lipgloss.Center).
+		Width(width - 6)
 
-	var listView string
+	var finishedListView string
 	if apiKeyMissing {
-		// Show API key missing message instead of empty list
-		emptyStyle := lipgloss.NewStyle().
-			Foreground(dimColor).
-			Padding(2, 2).
-			Align(lipgloss.Center).
-			Width(width - 6)
-		listView = emptyStyle.Render(constants.EmptyAPIKeyMissing)
+		finishedListView = emptyStyle.Render(constants.EmptyAPIKeyMissing)
 	} else {
-		listView = listModel.View()
-		// Check if list is empty and show appropriate message
-		if listModel.Items() == nil || len(listModel.Items()) == 0 {
-			emptyStyle := lipgloss.NewStyle().
-				Foreground(dimColor).
-				Padding(2, 2).
-				Align(lipgloss.Center).
-				Width(width - 6)
-			listView = emptyStyle.Render(constants.EmptyNoFinishedMatches + "\n\nTry selecting a different date range (h/l keys)")
+		finishedItems := finishedList.Items()
+		if len(finishedItems) == 0 {
+			// No items - show empty message, no list title
+			finishedListView = emptyStyle.Render(constants.EmptyNoFinishedMatches + "\n\nTry selecting a different date range (h/l keys)")
+		} else {
+			// Has items - show list (which includes its title)
+			finishedListView = finishedList.View()
 		}
 	}
 
-	// Check if we have upcoming matches for 1d selection
-	hasUpcoming := dateRange == 1 && len(upcomingMatches) > 0
-	var upcomingMatchesSection string
-
-	if hasUpcoming {
-		// Render upcoming matches section
-		upcomingTitle := panelTitleStyle.Width(width - 6).Render("Upcoming Matches")
-		var upcomingList []string
-		for _, match := range upcomingMatches {
-			// Format: "Team1 vs Team2 - League"
-			home := match.HomeTeam.ShortName
-			if home == "" {
-				home = match.HomeTeam.Name
-			}
-			away := match.AwayTeam.ShortName
-			if away == "" {
-				away = match.AwayTeam.Name
-			}
-			matchTime := ""
-			if match.MatchTime != nil {
-				matchTime = match.MatchTime.Format("15:04")
-			}
-			matchLine := fmt.Sprintf("  %s vs %s", home, away)
-			if matchTime != "" {
-				matchLine += fmt.Sprintf(" (%s)", matchTime)
-			}
-			if match.League.Name != "" {
-				matchLine += fmt.Sprintf(" - %s", match.League.Name)
-			}
-			upcomingList = append(upcomingList, matchListItemStyle.Render(matchLine))
+	// For 1-day view, show both lists stacked vertically
+	if dateRange == 1 {
+		var upcomingListView string
+		upcomingItems := upcomingList.Items()
+		if len(upcomingItems) == 0 {
+			// No upcoming matches - show empty message, no list title
+			upcomingListView = emptyStyle.Render("No upcoming matches scheduled for today")
+		} else {
+			// Has items - show list (which includes its title)
+			upcomingListView = upcomingList.View()
 		}
 
-		if len(upcomingList) == 0 {
-			emptyStyle := lipgloss.NewStyle().
-				Foreground(dimColor).
-				Padding(1, 2).
-				Align(lipgloss.Center).
-				Width(width - 6)
-			upcomingList = []string{emptyStyle.Render("No upcoming matches")}
-		}
-
-		upcomingContent := lipgloss.JoinVertical(lipgloss.Left, upcomingList...)
-		upcomingMatchesSection = lipgloss.JoinVertical(
+		// Combine both lists with date selector
+		content := lipgloss.JoinVertical(
 			lipgloss.Left,
+			dateSelector,
 			"",
-			upcomingTitle,
-			upcomingContent,
+			finishedListView,
+			"",
+			upcomingListView,
 		)
+		panel := panelStyle.
+			Width(width).
+			Height(height).
+			Render(content)
+		return panel
 	}
 
-	// Truncate listView to fit finished matches height if needed
-	finishedContent := lipgloss.JoinVertical(
+	// For 3-day view, only show finished matches
+	content := lipgloss.JoinVertical(
 		lipgloss.Left,
-		title,
 		dateSelector,
 		"",
-		listView,
+		finishedListView,
 	)
-
-	var content string
-	if hasUpcoming {
-		// Add separator between finished and upcoming
-		separator := lipgloss.NewStyle().
-			Foreground(borderColor).
-			Width(width - 6).
-			Render(strings.Repeat("─", width-8))
-		content = lipgloss.JoinVertical(
-			lipgloss.Left,
-			finishedContent,
-			separator,
-			upcomingMatchesSection,
-		)
-	} else {
-		content = finishedContent
-	}
 
 	panel := panelStyle.
 		Width(width).
@@ -274,7 +230,7 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 }
 
 // RenderStatsViewWithList renders the stats view with list component.
-func RenderStatsViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int, apiKeyMissing bool, upcomingMatches []MatchDisplay) string {
+func RenderStatsViewWithList(width, height int, finishedList list.Model, upcomingList list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int, apiKeyMissing bool) string {
 	// Handle edge case: if width/height not set, use defaults
 	if width <= 0 {
 		width = 80
@@ -290,12 +246,14 @@ func RenderStatsViewWithList(width, height int, listModel list.Model, details *a
 		availableHeight = 10 // Minimum height for panels
 	}
 
-	// Render spinner centered in reserved space - EXACTLY like live view
+	// Render spinner centered in reserved space
+	// ALWAYS show spinner when viewLoading is true - ensure it's visible immediately
+	// Match live view implementation exactly
 	var spinnerArea string
 	if viewLoading && randomSpinner != nil {
 		spinnerView := randomSpinner.View()
 		if spinnerView != "" {
-			// Center the spinner horizontally using style with width and alignment - EXACTLY like live view
+			// Center the spinner horizontally using style with width and alignment
 			spinnerStyle := lipgloss.NewStyle().
 				Width(width).
 				Height(spinnerHeight).
@@ -311,6 +269,14 @@ func RenderStatsViewWithList(width, height int, listModel list.Model, details *a
 				AlignVertical(lipgloss.Center)
 			spinnerArea = spinnerStyle.Render("Loading...")
 		}
+	} else if viewLoading {
+		// Fallback when viewLoading is true but randomSpinner is nil
+		spinnerStyle := lipgloss.NewStyle().
+			Width(width).
+			Height(spinnerHeight).
+			Align(lipgloss.Center).
+			AlignVertical(lipgloss.Center)
+		spinnerArea = spinnerStyle.Render("Loading...")
 	} else {
 		// Reserve space with empty lines - ensure it takes up exactly spinnerHeight lines
 		spinnerArea = strings.Repeat("\n", spinnerHeight)
@@ -333,7 +299,7 @@ func RenderStatsViewWithList(width, height int, listModel list.Model, details *a
 	rightPanelHeight := panelHeight / 2 // Split right panel vertically
 
 	// Render left panel (finished matches list) - full height
-	leftPanel := RenderStatsListPanel(leftWidth, panelHeight, listModel, dateRange, apiKeyMissing, upcomingMatches)
+	leftPanel := RenderStatsListPanel(leftWidth, panelHeight, finishedList, upcomingList, dateRange, apiKeyMissing)
 
 	// Render right panels (overview top, statistics bottom)
 	overviewPanel := renderMatchOverviewPanel(rightWidth, rightPanelHeight, details)
@@ -371,6 +337,15 @@ func RenderStatsViewWithList(width, height int, listModel list.Model, details *a
 
 	// Combine spinner area and panels - this shifts panels down
 	// Use lipgloss.Left (not Top) to match live view exactly
+	// Ensure spinner area is always at the top, even if empty
+	// DEBUG: Force spinner area to be visible - add explicit content
+	if viewLoading {
+		// Ensure spinner area has actual content when loading
+		if strings.TrimSpace(spinnerArea) == "" {
+			spinnerArea = strings.Repeat("⏳ LOADING...\n", spinnerHeight)
+		}
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		spinnerArea,
