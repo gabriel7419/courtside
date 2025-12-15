@@ -227,6 +227,50 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 		Events: []api.MatchEvent{}, // Events would need separate endpoint call
 	}
 
+	// Add half-time score
+	if match.Score.HalfTime.Home != nil || match.Score.HalfTime.Away != nil {
+		details.HalfTimeScore = &struct {
+			Home *int `json:"home,omitempty"`
+			Away *int `json:"away,omitempty"`
+		}{
+			Home: match.Score.HalfTime.Home,
+			Away: match.Score.HalfTime.Away,
+		}
+	}
+
+	// Add venue
+	if match.Fixture.Venue.Name != "" {
+		details.Venue = match.Fixture.Venue.Name
+	}
+
+	// Add winner indicator
+	if match.Teams.Home.Winner != nil && *match.Teams.Home.Winner {
+		winner := "home"
+		details.Winner = &winner
+	} else if match.Teams.Away.Winner != nil && *match.Teams.Away.Winner {
+		winner := "away"
+		details.Winner = &winner
+	}
+
+	// Add match duration and extra time/penalties info
+	if match.Fixture.Status.Short == "AET" || match.Fixture.Status.Short == "PEN" {
+		details.ExtraTime = true
+		details.MatchDuration = 120
+	} else {
+		details.MatchDuration = 90
+	}
+
+	// Add penalties if available
+	if match.Score.Penalty.Home != nil || match.Score.Penalty.Away != nil {
+		details.Penalties = &struct {
+			Home *int `json:"home,omitempty"`
+			Away *int `json:"away,omitempty"`
+		}{
+			Home: match.Score.Penalty.Home,
+			Away: match.Score.Penalty.Away,
+		}
+	}
+
 	return details, nil
 }
 

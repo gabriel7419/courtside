@@ -62,6 +62,20 @@ type MatchDetails struct {
 	Events     []MatchEvent `json:"events"`
 	HomeLineup []string     `json:"home_lineup,omitempty"`
 	AwayLineup []string     `json:"away_lineup,omitempty"`
+
+	// Additional match information
+	HalfTimeScore *struct {
+		Home *int `json:"home,omitempty"`
+		Away *int `json:"away,omitempty"`
+	} `json:"half_time_score,omitempty"`
+	Venue         string  `json:"venue,omitempty"`          // Stadium name
+	Winner        *string `json:"winner,omitempty"`         // "home" or "away"
+	MatchDuration int     `json:"match_duration,omitempty"` // 90, 120, etc.
+	ExtraTime     bool    `json:"extra_time,omitempty"`     // If match went to extra time
+	Penalties     *struct {
+		Home *int `json:"home,omitempty"`
+		Away *int `json:"away,omitempty"`
+	} `json:"penalties,omitempty"`
 }
 
 // LeagueTableEntry represents a team's position in the league table

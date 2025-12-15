@@ -30,12 +30,14 @@ type footballdataMatch struct {
 
 	Teams struct {
 		Home struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
+			ID     int    `json:"id"`
+			Name   string `json:"name"`
+			Winner *bool  `json:"winner,omitempty"`
 		} `json:"home"`
 		Away struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
+			ID     int    `json:"id"`
+			Name   string `json:"name"`
+			Winner *bool  `json:"winner,omitempty"`
 		} `json:"away"`
 	} `json:"teams"`
 
@@ -53,6 +55,14 @@ type footballdataMatch struct {
 			Home *int `json:"home"`
 			Away *int `json:"away"`
 		} `json:"halftime"`
+		ExtraTime struct {
+			Home *int `json:"home"`
+			Away *int `json:"away"`
+		} `json:"extratime,omitempty"`
+		Penalty struct {
+			Home *int `json:"home"`
+			Away *int `json:"away"`
+		} `json:"penalty,omitempty"`
 	} `json:"score"`
 }
 
