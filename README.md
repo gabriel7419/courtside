@@ -51,11 +51,7 @@ golazo
 
 ### Environment Variables
 
-For the Stats view (finished matches), set your API-Sports.io API key:
+For the Stats view (finished matches), set your [API-football.com](https://www.api-football.com/) API key:
 ```bash
 export FOOTBALL_DATA_API_KEY="your-api-key-here"
 ```
-
-Get your free API key at: https://www.api-sports.io/
-
-
