@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/fotmob"
 	"github.com/0xjuanma/golazo/internal/ui"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -44,14 +45,16 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 		switch m.selected {
-		case 0: // Stats view - preload finished matches
+		case 0: // Stats view - fetch data progressively (day by day)
 			m.statsViewLoading = true
 			m.loading = true
+			m.statsData = nil                          // Clear cached data to force fresh fetch
+			m.statsDaysLoaded = 0                      // Reset progress
+			m.statsTotalDays = fotmob.StatsDataDays    // Set total days to load
+			m.statsMatchesList.SetItems([]list.Item{}) // Clear list
 			cmds = append(cmds, ui.SpinnerTick())
-			cmds = append(cmds, fetchFinishedMatchesFotmob(m.fotmobClient, m.useMockData, m.statsDateRange))
-			if m.statsDateRange == 1 {
-				cmds = append(cmds, fetchUpcomingMatchesFotmob(m.fotmobClient, m.useMockData))
-			}
+			// Start fetching day 0 (today) first - results shown immediately when it completes
+			cmds = append(cmds, fetchStatsDayData(m.fotmobClient, m.useMockData, 0, fotmob.StatsDataDays))
 		case 1: // Live Matches view - preload live matches
 			m.liveViewLoading = true
 			m.loading = true
@@ -89,36 +92,41 @@ func (m model) handleLiveMatchesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // handleStatsViewKeys processes keyboard input for the stats view.
 // Handles date range navigation (left/right) to change the time period.
+// Uses client-side filtering from cached data - no new API calls needed!
 func (m model) handleStatsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "h", "left", "l", "right":
-		// Cycle date range: 1 -> 3 -> 1
-		if m.statsDateRange == 1 {
+		// Cycle date range: 1 -> 3 -> 5 -> 1
+		switch m.statsDateRange {
+		case 1:
 			m.statsDateRange = 3
-		} else {
+		case 3:
+			m.statsDateRange = 5
+		default:
 			m.statsDateRange = 1
 		}
 
-		// Reset state for new date range
+		// If we have cached stats data, just filter client-side (instant!)
+		if m.statsData != nil {
+			m.matchDetails = nil
+			m.matchDetailsCache = make(map[int]*api.MatchDetails)
+			m.applyStatsDateFilter()
+			m.selected = 0
+
+			// Load details for first match if available
+			if len(m.matches) > 0 {
+				m.statsMatchesList.Select(0)
+				return m.loadStatsMatchDetails(m.matches[0].ID)
+			}
+			return m, nil
+		}
+
+		// No cached data - need to fetch (shouldn't happen normally)
 		m.statsViewLoading = true
 		m.loading = true
-		m.upcomingMatches = nil
-		m.upcomingMatchesList.SetItems([]list.Item{})
-		m.matchDetailsCache = make(map[int]*api.MatchDetails)
-		m.matchDetails = nil
-
-		cmds := []tea.Cmd{
-			m.spinner.Tick,
-			ui.SpinnerTick(),
-			fetchFinishedMatchesFotmob(m.fotmobClient, m.useMockData, m.statsDateRange),
-		}
-
-		// Fetch upcoming matches only for 1-day view
-		if m.statsDateRange == 1 {
-			cmds = append(cmds, fetchUpcomingMatchesFotmob(m.fotmobClient, m.useMockData))
-		}
-
-		return m, tea.Batch(cmds...)
+		m.statsDaysLoaded = 0
+		m.statsTotalDays = fotmob.StatsDataDays
+		return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), fetchStatsDayData(m.fotmobClient, m.useMockData, 0, fotmob.StatsDataDays))
 	}
 	return m, nil
 }

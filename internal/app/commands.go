@@ -76,81 +76,89 @@ func pollMatchDetails(client *fotmob.Client, parser *fotmob.LiveUpdateParser, ma
 	})
 }
 
-// fetchFinishedMatchesFotmob fetches finished matches from FotMob API.
-// days specifies how many days to fetch (1 or 3).
-// For 1-day view, uses optimized MatchesForToday to avoid duplicate API calls.
-// Triggers background pre-fetching of match details for the first few matches.
-func fetchFinishedMatchesFotmob(client *fotmob.Client, useMockData bool, days int) tea.Cmd {
+// fetchStatsDayData fetches stats data for a single day (progressive loading).
+// dayIndex: 0 = today, 1 = yesterday, etc.
+// totalDays: total number of days to fetch (for isLast calculation)
+// This enables showing results immediately as each day's data arrives.
+func fetchStatsDayData(client *fotmob.Client, useMockData bool, dayIndex int, totalDays int) tea.Cmd {
 	return func() tea.Msg {
+		isToday := dayIndex == 0
+		isLast := dayIndex == totalDays-1
+
 		if useMockData {
-			return finishedMatchesMsg{matches: data.MockFinishedMatches()}
+			if isToday {
+				return statsDayDataMsg{
+					dayIndex: dayIndex,
+					isToday:  true,
+					isLast:   isLast,
+					finished: data.MockFinishedMatches(),
+					upcoming: nil,
+				}
+			}
+			return statsDayDataMsg{
+				dayIndex: dayIndex,
+				isToday:  false,
+				isLast:   isLast,
+				finished: nil,
+				upcoming: nil,
+			}
 		}
 
 		if client == nil {
-			return finishedMatchesMsg{matches: nil}
+			return statsDayDataMsg{
+				dayIndex: dayIndex,
+				isToday:  isToday,
+				isLast:   isLast,
+				finished: nil,
+				upcoming: nil,
+			}
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+
+		// Calculate the date for this day
+		today := time.Now().UTC()
+		date := today.AddDate(0, 0, -dayIndex)
 
 		var matches []api.Match
+		var err error
 
-		// Optimized path for 1-day view
-		if days == 1 {
-			finished, _, err := client.MatchesForToday(ctx)
-			if err != nil {
-				return finishedMatchesMsg{matches: nil}
-			}
-			matches = finished
+		if isToday {
+			// Today: need both fixtures (upcoming) and results (finished)
+			matches, err = client.MatchesByDateWithTabs(ctx, date, []string{"fixtures", "results"})
 		} else {
-			// Standard path for multi-day view
-			fetched, err := client.RecentFinishedMatches(ctx, days)
-			if err != nil {
-				return finishedMatchesMsg{matches: nil}
-			}
-			matches = fetched
+			// Past days: only need results (finished matches)
+			matches, err = client.MatchesByDateWithTabs(ctx, date, []string{"results"})
 		}
 
-		// Trigger background pre-fetching for the first 5 matches
-		// This improves perceived performance when user navigates the list
-		if len(matches) > 0 {
-			matchIDs := make([]int, 0, min(5, len(matches)))
-			for i := 0; i < len(matches) && i < 5; i++ {
-				matchIDs = append(matchIDs, matches[i].ID)
-			}
-			// Use a separate context for background pre-fetching
-			prefetchCtx, prefetchCancel := context.WithTimeout(context.Background(), 60*time.Second)
-			go func() {
-				defer prefetchCancel()
-				client.PreFetchMatchDetails(prefetchCtx, matchIDs, 5)
-			}()
-		}
-
-		return finishedMatchesMsg{matches: matches}
-	}
-}
-
-// fetchUpcomingMatchesFotmob fetches upcoming matches from FotMob API for today.
-// Only used when 1-day period is selected in stats view.
-func fetchUpcomingMatchesFotmob(client *fotmob.Client, useMockData bool) tea.Cmd {
-	return func() tea.Msg {
-		if useMockData {
-			return upcomingMatchesMsg{matches: nil}
-		}
-
-		if client == nil {
-			return upcomingMatchesMsg{matches: nil}
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		_, upcoming, err := client.MatchesForToday(ctx)
 		if err != nil {
-			return upcomingMatchesMsg{matches: nil}
+			return statsDayDataMsg{
+				dayIndex: dayIndex,
+				isToday:  isToday,
+				isLast:   isLast,
+				finished: nil,
+				upcoming: nil,
+			}
 		}
 
-		return upcomingMatchesMsg{matches: upcoming}
+		// Split matches into finished and upcoming
+		var finished, upcoming []api.Match
+		for _, match := range matches {
+			if match.Status == api.MatchStatusFinished {
+				finished = append(finished, match)
+			} else if match.Status == api.MatchStatusNotStarted && isToday {
+				upcoming = append(upcoming, match)
+			}
+		}
+
+		return statsDayDataMsg{
+			dayIndex: dayIndex,
+			isToday:  isToday,
+			isLast:   isLast,
+			finished: finished,
+			upcoming: upcoming,
+		}
 	}
 }
 
@@ -177,4 +185,3 @@ func fetchStatsMatchDetailsFotmob(client *fotmob.Client, matchID int, useMockDat
 		return matchDetailsMsg{details: details}
 	}
 }
-

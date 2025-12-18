@@ -38,6 +38,13 @@ type model struct {
 	liveUpdates       []string
 	lastEvents        []api.MatchEvent
 
+	// Stats data cache - stores 5 days of data, filtered client-side for Today/3d/5d views
+	statsData *fotmob.StatsData
+
+	// Progressive loading state
+	statsDaysLoaded int // Number of days loaded so far (0-5)
+	statsTotalDays  int // Total days to load (5)
+
 	// UI components
 	spinner          spinner.Model
 	randomSpinner    *ui.RandomCharSpinner
@@ -58,7 +65,7 @@ type model struct {
 
 	// Configuration
 	useMockData    bool
-	statsDateRange int // 1 or 3 days (default: 1)
+	statsDateRange int // 1, 3, or 5 days (default: 1)
 
 	// API clients
 	fotmobClient *fotmob.Client

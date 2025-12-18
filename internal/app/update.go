@@ -1,7 +1,10 @@
 package app
 
 import (
+	"time"
+
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/fotmob"
 	"github.com/0xjuanma/golazo/internal/ui"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,11 +33,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case liveMatchesMsg:
 		return m.handleLiveMatches(msg)
 
-	case finishedMatchesMsg:
-		return m.handleFinishedMatches(msg)
+	case statsDataMsg:
+		return m.handleStatsData(msg)
 
-	case upcomingMatchesMsg:
-		return m.handleUpcomingMatches(msg)
+	case statsDayDataMsg:
+		return m.handleStatsDayData(msg)
 
 	case ui.TickMsg:
 		return m.handleRandomSpinnerTick(msg)
@@ -323,43 +326,29 @@ func (m *model) updateLiveListSize() {
 	}
 }
 
-// handleFinishedMatches processes finished matches API response.
-func (m model) handleFinishedMatches(msg finishedMatchesMsg) (tea.Model, tea.Cmd) {
+// handleStatsData processes the unified stats data API response.
+// This is the main handler for stats view - always receives 3 days of data,
+// then filters client-side based on the selected date range.
+func (m model) handleStatsData(msg statsDataMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	if len(msg.matches) == 0 {
-		if m.statsDateRange == 1 {
-			return m, nil // Wait for upcoming matches
-		}
+	if msg.data == nil {
 		m.statsViewLoading = false
 		m.loading = false
 		return m, nil
 	}
 
-	// Deduplicate matches by ID
-	seen := make(map[int]bool)
-	var uniqueMatches []api.Match
-	for _, match := range msg.matches {
-		if !seen[match.ID] {
-			seen[match.ID] = true
-			uniqueMatches = append(uniqueMatches, match)
-		}
-	}
+	// Store the full stats data for client-side filtering
+	m.statsData = msg.data
 
-	// Convert to display format
-	displayMatches := make([]ui.MatchDisplay, 0, len(uniqueMatches))
-	for _, match := range uniqueMatches {
-		displayMatches = append(displayMatches, ui.MatchDisplay{Match: match})
-	}
+	// Apply the current date range filter
+	m.applyStatsDateFilter()
 
-	m.matches = displayMatches
 	m.selected = 0
 	m.loading = false
-	cmds = append(cmds, ui.SpinnerTick())
 
-	// Update list
-	m.statsMatchesList.SetItems(ui.ToMatchListItems(displayMatches))
-	if len(displayMatches) > 0 {
+	// If we have matches, load details for the first one
+	if len(m.matches) > 0 {
 		m.statsMatchesList.Select(0)
 		updatedModel, loadCmd := m.loadStatsMatchDetails(m.matches[0].ID)
 		if updatedM, ok := updatedModel.(model); ok {
@@ -369,25 +358,138 @@ func (m model) handleFinishedMatches(msg finishedMatchesMsg) (tea.Model, tea.Cmd
 		return m, tea.Batch(cmds...)
 	}
 
+	// No matches - stop spinner
 	m.statsViewLoading = false
+	return m, nil
+}
+
+// handleStatsDayData processes progressive loading - one day's data at a time.
+// Results are shown immediately as each day completes, giving instant feedback.
+func (m model) handleStatsDayData(msg statsDayDataMsg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	// Initialize statsData if nil (first day)
+	if m.statsData == nil {
+		m.statsData = &fotmob.StatsData{
+			AllFinished:   []api.Match{},
+			TodayFinished: []api.Match{},
+			TodayUpcoming: []api.Match{},
+		}
+	}
+
+	// Accumulate finished matches (prepend older matches)
+	if len(msg.finished) > 0 {
+		m.statsData.AllFinished = append(m.statsData.AllFinished, msg.finished...)
+
+		// Track today's finished separately
+		if msg.isToday {
+			m.statsData.TodayFinished = append(m.statsData.TodayFinished, msg.finished...)
+		}
+	}
+
+	// Add upcoming matches (only from today)
+	if msg.isToday && len(msg.upcoming) > 0 {
+		m.statsData.TodayUpcoming = append(m.statsData.TodayUpcoming, msg.upcoming...)
+	}
+
+	// Track progress
+	m.statsDaysLoaded++
+
+	// Apply filter and update UI immediately with current data
+	m.applyStatsDateFilter()
+
+	// On first day with matches, select first match and load details
+	firstDayWithMatches := msg.dayIndex == 0 && len(m.matches) > 0 && m.matchDetails == nil
+	if firstDayWithMatches {
+		m.selected = 0
+		m.statsMatchesList.Select(0)
+		updatedModel, loadCmd := m.loadStatsMatchDetails(m.matches[0].ID)
+		if updatedM, ok := updatedModel.(model); ok {
+			m = updatedM
+		}
+		cmds = append(cmds, loadCmd)
+	}
+
+	// If last day, stop loading
+	if msg.isLast {
+		m.statsViewLoading = false
+		m.loading = false
+		return m, tea.Batch(cmds...)
+	}
+
+	// Otherwise, fetch next day
+	nextDayIndex := msg.dayIndex + 1
+	cmds = append(cmds, fetchStatsDayData(m.fotmobClient, m.useMockData, nextDayIndex, m.statsTotalDays))
+
+	// Keep spinner running
+	cmds = append(cmds, ui.SpinnerTick())
+
 	return m, tea.Batch(cmds...)
 }
 
-// handleUpcomingMatches processes upcoming matches API response.
-func (m model) handleUpcomingMatches(msg upcomingMatchesMsg) (tea.Model, tea.Cmd) {
-	displayMatches := make([]ui.MatchDisplay, 0, len(msg.matches))
-	for _, match := range msg.matches {
+// applyStatsDateFilter applies the current date range filter to the cached stats data.
+// This enables instant switching between Today/3d/5d views without new API calls.
+// All filtering is done client-side from the cached 5-day data.
+func (m *model) applyStatsDateFilter() {
+	if m.statsData == nil {
+		return
+	}
+
+	var finishedMatches []api.Match
+	switch m.statsDateRange {
+	case 1:
+		// Today only - use pre-filtered data
+		finishedMatches = m.statsData.TodayFinished
+	case 3:
+		// Last 3 days - filter from all finished matches by date
+		finishedMatches = filterMatchesByDays(m.statsData.AllFinished, 3)
+	default:
+		// 5 days - use all data
+		finishedMatches = m.statsData.AllFinished
+	}
+
+	// Convert to display format
+	displayMatches := make([]ui.MatchDisplay, 0, len(finishedMatches))
+	for _, match := range finishedMatches {
 		displayMatches = append(displayMatches, ui.MatchDisplay{Match: match})
 	}
+	m.matches = displayMatches
+	m.statsMatchesList.SetItems(ui.ToMatchListItems(displayMatches))
 
-	m.upcomingMatches = displayMatches
-	m.upcomingMatchesList.SetItems(ui.ToMatchListItems(displayMatches))
+	// Upcoming matches (only shown for 1-day view)
+	if m.statsDateRange == 1 {
+		upcomingDisplayMatches := make([]ui.MatchDisplay, 0, len(m.statsData.TodayUpcoming))
+		for _, match := range m.statsData.TodayUpcoming {
+			upcomingDisplayMatches = append(upcomingDisplayMatches, ui.MatchDisplay{Match: match})
+		}
+		m.upcomingMatches = upcomingDisplayMatches
+		m.upcomingMatchesList.SetItems(ui.ToMatchListItems(upcomingDisplayMatches))
+	} else {
+		m.upcomingMatches = nil
+		m.upcomingMatchesList.SetItems(nil)
+	}
+}
 
-	if m.matchDetails != nil {
-		m.statsViewLoading = false
+// filterMatchesByDays filters matches to only include those from the last N days.
+func filterMatchesByDays(matches []api.Match, days int) []api.Match {
+	if days <= 0 {
+		return matches
 	}
 
-	return m, nil
+	now := time.Now().UTC()
+	cutoff := now.AddDate(0, 0, -(days - 1)) // Include today as day 1
+	cutoffDate := cutoff.Format("2006-01-02")
+
+	var filtered []api.Match
+	for _, match := range matches {
+		if match.MatchTime != nil {
+			matchDate := match.MatchTime.UTC().Format("2006-01-02")
+			if matchDate >= cutoffDate {
+				filtered = append(filtered, match)
+			}
+		}
+	}
+	return filtered
 }
 
 // handleRandomSpinnerTick updates all active spinner animations.
