@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Event Styling** - Minimal styling added to live events to clearly denote each type
+- **Live View Layout** - Reordered match info: minute/league, teams, then large score display
+- **Large Score Display** - Score now rendered in prominent block-style digits for visibility
 
 ### Fixed
 - **Live Events Order** - Events now sorted by time (descending) with proper uniqueness
