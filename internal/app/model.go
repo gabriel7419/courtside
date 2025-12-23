@@ -104,18 +104,24 @@ func New(useMockData bool) model {
 
 	liveList := list.New([]list.Item{}, delegate, 0, 0)
 	liveList.SetShowTitle(false)
-	liveList.SetShowStatusBar(false)
-	liveList.SetFilteringEnabled(false)
+	liveList.SetShowStatusBar(true)
+	liveList.SetFilteringEnabled(true)
+	liveList.SetShowFilter(true)
+	liveList.Filter = list.DefaultFilter // Required for filtering to work
 
 	statsList := list.New([]list.Item{}, delegate, 0, 0)
 	statsList.SetShowTitle(false)
-	statsList.SetShowStatusBar(false)
-	statsList.SetFilteringEnabled(false)
+	statsList.SetShowStatusBar(true)
+	statsList.SetFilteringEnabled(true)
+	statsList.SetShowFilter(true)
+	statsList.Filter = list.DefaultFilter // Required for filtering to work
 
 	upcomingList := list.New([]list.Item{}, delegate, 0, 0)
 	upcomingList.SetShowTitle(false)
-	upcomingList.SetShowStatusBar(false)
-	upcomingList.SetFilteringEnabled(false)
+	upcomingList.SetShowStatusBar(true)
+	upcomingList.SetFilteringEnabled(true)
+	upcomingList.SetShowFilter(true)
+	upcomingList.Filter = list.DefaultFilter // Required for filtering to work
 
 	return model{
 		currentView:         viewMain,

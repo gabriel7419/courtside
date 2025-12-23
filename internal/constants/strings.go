@@ -28,7 +28,7 @@ const (
 // Help text
 const (
 	HelpMainMenu     = "↑/↓: navigate  Enter: select  q: quit"
-	HelpMatchesView  = "↑/↓: navigate  Esc: back  q: quit"
+	HelpMatchesView  = "↑/↓: navigate  /: filter  Esc: back  q: quit"
 	HelpSettingsView = "↑/↓: navigate  Space: toggle  Enter: save  Esc: cancel"
 )
 

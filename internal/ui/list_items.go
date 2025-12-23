@@ -22,8 +22,9 @@ func (m MatchListItem) Description() string {
 }
 
 // FilterValue returns the value to use for filtering.
+// Returns team names for searching (e.g., "Arsenal vs Chelsea").
 func (m MatchListItem) FilterValue() string {
-	return m.Display.Title()
+	return m.Title()
 }
 
 // ToMatchListItems converts a slice of MatchDisplay to list items.
