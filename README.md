@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/golazo-logo.png" alt="Golazo demo" width="120">
+  <img src="assets/golazo-logo.png" alt="Golazo demo" width="150">
   <h1>Golazo</h1>
 </div>
 
