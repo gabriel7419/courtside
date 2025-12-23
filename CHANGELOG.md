@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **League Selection** - New settings customization to select and persist league preferences
 
 ### Changed
 
