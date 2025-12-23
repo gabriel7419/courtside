@@ -9,60 +9,23 @@ import (
 	"time"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/data"
 )
 
 const (
 	baseURL = "https://www.fotmob.com/api"
 )
 
-// Supported league IDs for match fetching
-var (
-	// SupportedLeagues contains the league IDs that will be queried for matches.
-	// FotMob league IDs:
-	//
-	//   Top 5 European Leagues:
-	//   - Premier League: 47
-	//   - La Liga: 87
-	//   - Bundesliga: 54
-	//   - Serie A (Italy): 55
-	//   - Ligue 1: 53
-	//
-	//   European Competitions:
-	//   - UEFA Champions League: 42
-	//   - UEFA Europa League: 73
-	//   - UEFA Euro: 50
-	//
-	//   South America:
-	//   - Brasileirão Série A: 268
-	//   - Liga Profesional Argentina: 112
-	//   - Copa Libertadores: 14
-	//   - Copa America: 44
-	//
-	//   Other:
-	//   - MLS (USA): 130
-	//   - FIFA World Cup: 77
-	//
-	SupportedLeagues = []int{
-		// Top 5 European Leagues
-		47, // Premier League
-		87, // La Liga
-		54, // Bundesliga
-		55, // Serie A (Italy)
-		53, // Ligue 1
-		// European Competitions
-		42, // UEFA Champions League
-		73, // UEFA Europa League
-		50, // UEFA Euro
-		// South America
-		268, // Brasileirão Série A
-		112, // Liga Profesional Argentina
-		14,  // Copa Libertadores
-		44,  // Copa America
-		// Other
-		130, // MLS
-		77,  // FIFA World Cup
-	}
-)
+// GetActiveLeagues returns the league IDs to use for API calls.
+// This respects user settings - if specific leagues are selected, only those are returned.
+// If no selection is made, returns all supported leagues.
+func GetActiveLeagues() []int {
+	return data.GetActiveLeagueIDs()
+}
+
+// SupportedLeagues is kept for backward compatibility but now uses settings.
+// Use GetActiveLeagues() for dynamic league selection based on user preferences.
+var SupportedLeagues = data.GetAllLeagueIDs()
 
 // Client implements the api.Client interface for FotMob API
 type Client struct {
@@ -155,9 +118,12 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 	// Track skipped leagues for logging/debugging
 	var skippedFromCache int
 
+	// Get active leagues (respects user settings)
+	activeLeagues := GetActiveLeagues()
+
 	// Query specified tabs
 	for _, tab := range tabs {
-		for _, leagueID := range SupportedLeagues {
+		for _, leagueID := range activeLeagues {
 			// Check empty cache before spawning goroutine (for "results" tab only)
 			// Skip leagues known to have no matches on this date
 			if tab == "results" && c.emptyCache != nil && c.emptyCache.IsEmpty(requestDateStr, leagueID) {

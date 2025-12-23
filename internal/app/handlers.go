@@ -14,7 +14,7 @@ import (
 func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "j", "down":
-		if m.selected < 1 && !m.mainViewLoading {
+		if m.selected < 2 && !m.mainViewLoading { // 3 menu items: 0, 1, 2
 			m.selected++
 		}
 	case "k", "up":
@@ -25,6 +25,14 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mainViewLoading {
 			return m, nil
 		}
+
+		// Handle Settings view separately (no API calls needed)
+		if m.selected == 2 {
+			m.settingsState = ui.NewSettingsState()
+			m.currentView = viewSettings
+			return m, nil
+		}
+
 		m.mainViewLoading = true
 		m.pendingSelection = m.selected
 
@@ -161,4 +169,34 @@ func (m model) loadStatsMatchDetails(matchID int) (tea.Model, tea.Cmd) {
 	m.loading = true
 	m.statsViewLoading = true
 	return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), fetchStatsMatchDetailsFotmob(m.fotmobClient, matchID, m.useMockData))
+}
+
+// handleSettingsViewKeys processes keyboard input for the settings view.
+// Handles navigation (up/down), selection toggle (space), save (enter), and cancel (esc).
+func (m model) handleSettingsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.settingsState == nil {
+		return m, nil
+	}
+
+	switch msg.String() {
+	case "j", "down":
+		m.settingsState.MoveDown()
+	case "k", "up":
+		m.settingsState.MoveUp()
+	case " ": // Space to toggle
+		m.settingsState.Toggle()
+	case "enter":
+		// Save settings and return to main menu
+		_ = m.settingsState.Save() // Best-effort save
+		m.settingsState = nil
+		m.currentView = viewMain
+		m.selected = 0
+	case "esc":
+		// Cancel and return to main menu without saving
+		m.settingsState = nil
+		m.currentView = viewMain
+		m.selected = 0
+	}
+
+	return m, nil
 }

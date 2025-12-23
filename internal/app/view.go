@@ -40,6 +40,9 @@ func (m model) View() string {
 			m.statsTotalDays,
 		)
 
+	case viewSettings:
+		return ui.RenderSettingsView(m.width, m.height, m.settingsState)
+
 	default:
 		return ui.RenderMainMenu(m.width, m.height, m.selected, m.spinner, m.randomSpinner, m.mainViewLoading)
 	}

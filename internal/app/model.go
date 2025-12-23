@@ -17,6 +17,7 @@ const (
 	viewMain view = iota
 	viewLiveMatches
 	viewStats
+	viewSettings
 )
 
 // model holds the application state.
@@ -73,6 +74,9 @@ type model struct {
 	useMockData    bool
 	statsDateRange int // 1, 3, or 5 days (default: 1)
 
+	// Settings view state
+	settingsState *ui.SettingsState
+
 	// API clients
 	fotmobClient *fotmob.Client
 	parser       *fotmob.LiveUpdateParser
@@ -98,20 +102,38 @@ func New(useMockData bool) model {
 	// Initialize list models with custom delegate
 	delegate := ui.NewMatchListDelegate()
 
+	// Filter input styles matching neon theme
+	filterCursorStyle, filterPromptStyle := ui.FilterInputStyles()
+
 	liveList := list.New([]list.Item{}, delegate, 0, 0)
 	liveList.SetShowTitle(false)
-	liveList.SetShowStatusBar(false)
-	liveList.SetFilteringEnabled(false)
+	liveList.SetShowStatusBar(true)
+	liveList.SetFilteringEnabled(true)
+	liveList.SetShowFilter(true)
+	liveList.Filter = list.DefaultFilter // Required for filtering to work
+	liveList.Styles.FilterCursor = filterCursorStyle
+	liveList.FilterInput.PromptStyle = filterPromptStyle
+	liveList.FilterInput.Cursor.Style = filterCursorStyle
 
 	statsList := list.New([]list.Item{}, delegate, 0, 0)
 	statsList.SetShowTitle(false)
-	statsList.SetShowStatusBar(false)
-	statsList.SetFilteringEnabled(false)
+	statsList.SetShowStatusBar(true)
+	statsList.SetFilteringEnabled(true)
+	statsList.SetShowFilter(true)
+	statsList.Filter = list.DefaultFilter // Required for filtering to work
+	statsList.Styles.FilterCursor = filterCursorStyle
+	statsList.FilterInput.PromptStyle = filterPromptStyle
+	statsList.FilterInput.Cursor.Style = filterCursorStyle
 
 	upcomingList := list.New([]list.Item{}, delegate, 0, 0)
 	upcomingList.SetShowTitle(false)
-	upcomingList.SetShowStatusBar(false)
-	upcomingList.SetFilteringEnabled(false)
+	upcomingList.SetShowStatusBar(true)
+	upcomingList.SetFilteringEnabled(true)
+	upcomingList.SetShowFilter(true)
+	upcomingList.Filter = list.DefaultFilter // Required for filtering to work
+	upcomingList.Styles.FilterCursor = filterCursorStyle
+	upcomingList.FilterInput.PromptStyle = filterPromptStyle
+	upcomingList.FilterInput.Cursor.Style = filterCursorStyle
 
 	return model{
 		currentView:         viewMain,

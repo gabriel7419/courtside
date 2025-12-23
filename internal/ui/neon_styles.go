@@ -209,3 +209,15 @@ func NeonDateSelectedStyle() lipgloss.Style {
 func NeonDateUnselectedStyle() lipgloss.Style {
 	return neonDateUnselectedStyle
 }
+
+// FilterInputStyles returns cursor and prompt styles for list filter input.
+// Cursor: neon cyan (solid color), Prompt: neon red to match theme.
+func FilterInputStyles() (cursorStyle, promptStyle lipgloss.Style) {
+	cursorStyle = lipgloss.NewStyle().
+		Foreground(neonCyan).
+		Bold(true)
+	promptStyle = lipgloss.NewStyle().
+		Foreground(neonRed).
+		Bold(true)
+	return cursorStyle, promptStyle
+}

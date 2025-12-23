@@ -19,6 +19,7 @@ func NewMatchListDelegate() list.DefaultDelegate {
 	neonCyan := lipgloss.Color("51")
 	neonWhite := lipgloss.Color("255")
 	neonGray := lipgloss.Color("244")
+	neonDim := lipgloss.Color("238")
 
 	// Selected items: Neon red title, cyan description, red left border
 	d.Styles.SelectedTitle = lipgloss.NewStyle().
@@ -40,6 +41,20 @@ func NewMatchListDelegate() list.DefaultDelegate {
 	d.Styles.NormalDesc = lipgloss.NewStyle().
 		Foreground(neonGray).
 		Padding(0, 1)
+
+	// Dimmed items (non-matching during filter): very dim
+	d.Styles.DimmedTitle = lipgloss.NewStyle().
+		Foreground(neonDim).
+		Padding(0, 1)
+	d.Styles.DimmedDesc = lipgloss.NewStyle().
+		Foreground(neonDim).
+		Padding(0, 1)
+
+	// Filter match highlight: cyan bold for matched text
+	d.Styles.FilterMatch = lipgloss.NewStyle().
+		Foreground(neonCyan).
+		Bold(true).
+		Underline(true)
 
 	return d
 }

@@ -77,17 +77,18 @@ func (c *Client) LiveMatchesForLeague(ctx context.Context, leagueID int) ([]api.
 	return liveMatches, nil
 }
 
-// TotalLeagues returns the number of supported leagues.
+// TotalLeagues returns the number of active leagues (respects user settings).
 func TotalLeagues() int {
-	return len(SupportedLeagues)
+	return len(GetActiveLeagues())
 }
 
-// LeagueIDAtIndex returns the league ID at the given index.
+// LeagueIDAtIndex returns the league ID at the given index from active leagues.
 func LeagueIDAtIndex(index int) int {
-	if index < 0 || index >= len(SupportedLeagues) {
+	activeLeagues := GetActiveLeagues()
+	if index < 0 || index >= len(activeLeagues) {
 		return 0
 	}
-	return SupportedLeagues[index]
+	return activeLeagues[index]
 }
 
 // LiveUpdateParser parses match events into live update strings.

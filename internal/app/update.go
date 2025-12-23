@@ -6,6 +6,7 @@ import (
 	"github.com/0xjuanma/golazo/internal/api"
 	"github.com/0xjuanma/golazo/internal/fotmob"
 	"github.com/0xjuanma/golazo/internal/ui"
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -56,6 +57,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case pollDisplayCompleteMsg:
 		return m.handlePollDisplayComplete()
+
+	case list.FilterMatchesMsg:
+		// Route filter matches message to the appropriate list based on current view
+		return m.handleFilterMatches(msg)
 
 	default:
 		// Fallback handler for ui.TickMsg type assertion
@@ -198,6 +203,23 @@ func (m model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "esc":
+		// Check if any list is in filtering mode - if so, let the list handle Esc
+		// to cancel the filter instead of navigating back
+		isFiltering := false
+		switch m.currentView {
+		case viewLiveMatches:
+			isFiltering = m.liveMatchesList.FilterState() == list.Filtering ||
+				m.liveMatchesList.FilterState() == list.FilterApplied
+		case viewStats:
+			isFiltering = m.statsMatchesList.FilterState() == list.Filtering ||
+				m.statsMatchesList.FilterState() == list.FilterApplied
+		}
+
+		if isFiltering {
+			// Let the view-specific handler pass Esc to the list to cancel filter
+			break
+		}
+
 		if m.currentView != viewMain {
 			return m.resetToMainView()
 		}
@@ -211,6 +233,8 @@ func (m model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleLiveMatchesSelection(msg)
 	case viewStats:
 		return m.handleStatsSelection(msg)
+	case viewSettings:
+		return m.handleSettingsViewKeys(msg)
 	}
 
 	return m, nil
@@ -233,18 +257,47 @@ func (m model) resetToMainView() (tea.Model, tea.Cmd) {
 
 // handleLiveMatchesSelection handles list navigation in live matches view.
 func (m model) handleLiveMatchesSelection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Capture selected item BEFORE Update (critical for filter mode - selection changes after filter clears)
+	var preUpdateMatchID int
+	if preItem := m.liveMatchesList.SelectedItem(); preItem != nil {
+		if item, ok := preItem.(ui.MatchListItem); ok {
+			preUpdateMatchID = item.Match.ID
+		}
+	}
+
 	var listCmd tea.Cmd
 	m.liveMatchesList, listCmd = m.liveMatchesList.Update(msg)
 
-	if selectedItem := m.liveMatchesList.SelectedItem(); selectedItem != nil {
-		if item, ok := selectedItem.(ui.MatchListItem); ok {
-			for i, match := range m.matches {
-				if match.ID == item.Match.ID && i != m.selected {
-					m.selected = i
-					return m.loadMatchDetails(m.matches[m.selected].ID)
-				}
+	// Get currently displayed match ID
+	currentMatchID := 0
+	if m.matchDetails != nil {
+		currentMatchID = m.matchDetails.ID
+	}
+
+	// Check post-update selection
+	var postUpdateMatchID int
+	if postItem := m.liveMatchesList.SelectedItem(); postItem != nil {
+		if item, ok := postItem.(ui.MatchListItem); ok {
+			postUpdateMatchID = item.Match.ID
+		}
+	}
+
+	// Use pre-update selection if it was valid and different from current
+	// This handles the filter case where Enter clears the filter
+	targetMatchID := postUpdateMatchID
+	if msg.String() == "enter" && preUpdateMatchID != 0 {
+		targetMatchID = preUpdateMatchID
+	}
+
+	// Load match details if selection changed
+	if targetMatchID != 0 && targetMatchID != currentMatchID {
+		for i, match := range m.matches {
+			if match.ID == targetMatchID {
+				m.selected = i
+				break
 			}
 		}
+		return m.loadMatchDetails(targetMatchID)
 	}
 
 	return m, listCmd
@@ -252,24 +305,58 @@ func (m model) handleLiveMatchesSelection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // handleStatsSelection handles list navigation and date range changes in stats view.
 func (m model) handleStatsSelection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Handle date range navigation
-	if msg.String() == "h" || msg.String() == "left" || msg.String() == "l" || msg.String() == "right" {
-		return m.handleStatsViewKeys(msg)
+	// Check if list is in filtering mode - if so, let list handle ALL keys
+	isFiltering := m.statsMatchesList.FilterState() == list.Filtering
+
+	// Only handle date range navigation when NOT filtering
+	if !isFiltering {
+		if msg.String() == "h" || msg.String() == "left" || msg.String() == "l" || msg.String() == "right" {
+			return m.handleStatsViewKeys(msg)
+		}
+	}
+
+	// Capture selected item BEFORE Update (critical for filter mode - selection changes after filter clears)
+	var preUpdateMatchID int
+	if preItem := m.statsMatchesList.SelectedItem(); preItem != nil {
+		if item, ok := preItem.(ui.MatchListItem); ok {
+			preUpdateMatchID = item.Match.ID
+		}
 	}
 
 	// Handle list navigation
 	var listCmd tea.Cmd
 	m.statsMatchesList, listCmd = m.statsMatchesList.Update(msg)
 
-	if selectedItem := m.statsMatchesList.SelectedItem(); selectedItem != nil {
-		if item, ok := selectedItem.(ui.MatchListItem); ok {
-			for i, match := range m.matches {
-				if match.ID == item.Match.ID && i != m.selected {
-					m.selected = i
-					return m.loadStatsMatchDetails(m.matches[m.selected].ID)
-				}
+	// Get currently displayed match ID
+	currentMatchID := 0
+	if m.matchDetails != nil {
+		currentMatchID = m.matchDetails.ID
+	}
+
+	// Check post-update selection
+	var postUpdateMatchID int
+	if postItem := m.statsMatchesList.SelectedItem(); postItem != nil {
+		if item, ok := postItem.(ui.MatchListItem); ok {
+			postUpdateMatchID = item.Match.ID
+		}
+	}
+
+	// Use pre-update selection if it was valid and different from current
+	// This handles the filter case where Enter clears the filter
+	targetMatchID := postUpdateMatchID
+	if msg.String() == "enter" && preUpdateMatchID != 0 {
+		targetMatchID = preUpdateMatchID
+	}
+
+	// Load match details if selection changed
+	if targetMatchID != 0 && targetMatchID != currentMatchID {
+		for i, match := range m.matches {
+			if match.ID == targetMatchID {
+				m.selected = i
+				break
 			}
 		}
+		return m.loadStatsMatchDetails(targetMatchID)
 	}
 
 	return m, listCmd
@@ -736,6 +823,28 @@ func (m model) handlePollDisplayComplete() (tea.Model, tea.Cmd) {
 	// Hide spinner - the 0.5s visual feedback is complete
 	m.loading = false
 	return m, nil
+}
+
+// handleFilterMatches routes filter matches messages to the appropriate list.
+// This is required for the bubbles list filter to work - it fires async matching
+// and sends results via FilterMatchesMsg which must be routed back to the list.
+func (m model) handleFilterMatches(msg list.FilterMatchesMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch m.currentView {
+	case viewLiveMatches:
+		m.liveMatchesList, cmd = m.liveMatchesList.Update(msg)
+	case viewStats:
+		m.statsMatchesList, cmd = m.statsMatchesList.Update(msg)
+		// Also update upcoming list in case it's being filtered
+		var upCmd tea.Cmd
+		m.upcomingMatchesList, upCmd = m.upcomingMatchesList.Update(msg)
+		if upCmd != nil {
+			cmd = tea.Batch(cmd, upCmd)
+		}
+	}
+
+	return m, cmd
 }
 
 // max returns the larger of two integers.
