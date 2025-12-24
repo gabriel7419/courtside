@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.4.0] - 2025-12-24
+
+### Added
 - **Windows Support** - Added Windows builds (amd64, arm64) and PowerShell install script
 - **10 New Leagues** - Eredivisie, Primeira Liga, Belgian Pro League, Scottish Premiership, Süper Lig, Swiss Super League, Austrian Bundesliga, Ekstraklasa, Copa del Rey, Liga MX
 
