@@ -2,60 +2,19 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/0xjuanma/golazo/internal/data"
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	// Settings view styles
-	settingsTitleStyle = lipgloss.NewStyle().
-				Foreground(accentColor).
-				Bold(true).
-				Align(lipgloss.Center).
-				MarginBottom(1)
-
-	settingsItemStyle = lipgloss.NewStyle().
-				Foreground(textColor).
-				Padding(0, 1)
-
-	settingsSelectedStyle = lipgloss.NewStyle().
-				Foreground(highlightColor).
-				Bold(true).
-				Padding(0, 1)
-
-	settingsCheckboxChecked = lipgloss.NewStyle().
-				Foreground(accentColor).
-				Bold(true)
-
-	settingsCheckboxUnchecked = lipgloss.NewStyle().
-					Foreground(dimColor)
-
-	settingsCountryStyle = lipgloss.NewStyle().
-				Foreground(dimColor).
-				Italic(true)
-
-	settingsHelpStyle = lipgloss.NewStyle().
-				Foreground(dimColor).
-				Align(lipgloss.Center).
-				MarginTop(1)
-
-	settingsBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(borderColor).
-				Padding(1, 2)
-
-	settingsInfoStyle = lipgloss.NewStyle().
-				Foreground(secondaryColor).
-				Align(lipgloss.Center).
-				MarginTop(1)
-)
+// Settings view uses the same neon colors as the rest of the app (red/cyan theme).
+// Minimal design without heavy borders.
 
 // SettingsState holds the state for the settings view.
 type SettingsState struct {
-	Cursor     int          // Currently highlighted item
+	List       list.Model   // List component for league navigation
 	Selected   map[int]bool // Map of league ID -> selected
 	Leagues    []data.LeagueInfo
 	HasChanges bool // Whether there are unsaved changes
@@ -75,34 +34,59 @@ func NewSettingsState() *SettingsState {
 		}
 	}
 
+	leagues := data.AllSupportedLeagues
+
+	// Create list items
+	items := make([]list.Item, len(leagues))
+	for i, league := range leagues {
+		items[i] = LeagueListItem{
+			League:   league,
+			Selected: selected[league.ID],
+		}
+	}
+
+	// Create and configure the list
+	delegate := NewLeagueListDelegate()
+	l := list.New(items, delegate, 0, 0)
+	l.SetShowTitle(false)
+	l.SetShowStatusBar(true)
+	l.SetFilteringEnabled(true)
+	l.SetShowFilter(true)
+	l.Filter = list.DefaultFilter
+	l.SetShowHelp(false) // We use our own help text
+
+	// Apply filter input styles
+	filterCursorStyle, filterPromptStyle := FilterInputStyles()
+	l.Styles.FilterCursor = filterCursorStyle
+	l.FilterInput.PromptStyle = filterPromptStyle
+	l.FilterInput.Cursor.Style = filterCursorStyle
+
 	return &SettingsState{
-		Cursor:   0,
+		List:     l,
 		Selected: selected,
-		Leagues:  data.AllSupportedLeagues,
+		Leagues:  leagues,
 	}
 }
 
 // Toggle toggles the selection state of the currently highlighted league.
 func (s *SettingsState) Toggle() {
-	if s.Cursor >= 0 && s.Cursor < len(s.Leagues) {
-		leagueID := s.Leagues[s.Cursor].ID
-		s.Selected[leagueID] = !s.Selected[leagueID]
+	if item, ok := s.List.SelectedItem().(LeagueListItem); ok {
+		s.Selected[item.League.ID] = !s.Selected[item.League.ID]
 		s.HasChanges = true
+		s.refreshListItems()
 	}
 }
 
-// MoveUp moves the cursor up.
-func (s *SettingsState) MoveUp() {
-	if s.Cursor > 0 {
-		s.Cursor--
+// refreshListItems updates the list items to reflect current selection state.
+func (s *SettingsState) refreshListItems() {
+	items := make([]list.Item, len(s.Leagues))
+	for i, league := range s.Leagues {
+		items[i] = LeagueListItem{
+			League:   league,
+			Selected: s.Selected[league.ID],
+		}
 	}
-}
-
-// MoveDown moves the cursor down.
-func (s *SettingsState) MoveDown() {
-	if s.Cursor < len(s.Leagues)-1 {
-		s.Cursor++
-	}
+	s.List.SetItems(items)
 }
 
 // Save persists the current selection to settings.yaml.
@@ -136,78 +120,63 @@ func (s *SettingsState) SelectedCount() int {
 	return count
 }
 
-// Fixed width for settings box to prevent UI shifting when selections change
-const settingsBoxWidth = 52
+// Fixed width for settings panel
+const settingsBoxWidth = 48
 
 // RenderSettingsView renders the settings view for league customization.
+// Uses minimal styling consistent with the rest of the app (red/cyan neon theme).
 func RenderSettingsView(width, height int, state *SettingsState) string {
 	if state == nil {
 		return ""
 	}
 
-	// Title - centered within fixed width
-	titleStyle := settingsTitleStyle.Width(settingsBoxWidth).Align(lipgloss.Center)
-	title := titleStyle.Render("League Preferences")
+	// Calculate available space for the list
+	const (
+		titleHeight  = 3 // Title + margin
+		infoHeight   = 2 // Selection info
+		helpHeight   = 2 // Help text
+		extraPadding = 4 // Additional vertical spacing
+	)
 
-	// Build the list of leagues
-	var items []string
-	for i, league := range state.Leagues {
-		// Checkbox
-		var checkbox string
-		if state.Selected[league.ID] {
-			checkbox = settingsCheckboxChecked.Render("[x]")
-		} else {
-			checkbox = settingsCheckboxUnchecked.Render("[ ]")
-		}
-
-		// League name and country
-		leagueName := league.Name
-		country := settingsCountryStyle.Render(fmt.Sprintf("(%s)", league.Country))
-
-		line := fmt.Sprintf("%s %s %s", checkbox, leagueName, country)
-
-		// Apply cursor styling
-		if i == state.Cursor {
-			items = append(items, settingsSelectedStyle.Render("▸ "+line))
-		} else {
-			items = append(items, settingsItemStyle.Render("  "+line))
-		}
+	listWidth := settingsBoxWidth
+	listHeight := height - titleHeight - infoHeight - helpHeight - extraPadding
+	if listHeight < 5 {
+		listHeight = 5
 	}
 
-	listContent := strings.Join(items, "\n")
+	// Update list dimensions
+	state.List.SetSize(listWidth, listHeight)
 
-	// Selection info - fixed width and centered to prevent shifting
+	// Title - red like other panel titles
+	titleStyle := neonPanelTitleStyle.Width(settingsBoxWidth)
+	title := titleStyle.Render("League Preferences")
+
+	// Render the list
+	listContent := state.List.View()
+
+	// Selection info
 	selectedCount := state.SelectedCount()
 	var infoText string
 	if selectedCount == 0 {
-		infoText = "No selection - using default leagues"
+		infoText = "No selection = default leagues"
 	} else {
-		infoText = fmt.Sprintf("%d of %d leagues selected", selectedCount, len(state.Leagues))
+		infoText = fmt.Sprintf("%d of %d selected", selectedCount, len(state.Leagues))
 	}
-	infoStyle := settingsInfoStyle.Width(settingsBoxWidth).Align(lipgloss.Center)
+	infoStyle := neonDimStyle.Width(settingsBoxWidth).Align(lipgloss.Center)
 	info := infoStyle.Render(infoText)
 
 	// Help text
-	help := settingsHelpStyle.Render(constants.HelpSettingsView)
+	helpStyle := neonDimStyle.Align(lipgloss.Center)
+	help := helpStyle.Render(constants.HelpSettingsView)
 
-	// Combine content with fixed width
-	innerContent := lipgloss.JoinVertical(
+	// Combine content (minimal, no borders)
+	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		title,
 		"",
 		listContent,
 		"",
 		info,
-	)
-
-	// Add border with fixed width
-	borderedStyle := settingsBorderStyle.Width(settingsBoxWidth + 6) // +6 for padding and border
-	borderedContent := borderedStyle.Render(innerContent)
-
-	// Final layout with help at bottom
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		borderedContent,
 		help,
 	)
 

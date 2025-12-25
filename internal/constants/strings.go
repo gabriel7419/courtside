@@ -29,7 +29,7 @@ const (
 const (
 	HelpMainMenu     = "↑/↓: navigate  Enter: select  q: quit"
 	HelpMatchesView  = "↑/↓: navigate  /: filter  Esc: back  q: quit"
-	HelpSettingsView = "↑/↓: navigate  Space: toggle  Enter: save  Esc: cancel"
+	HelpSettingsView = "↑/↓: navigate  Space: toggle  /: filter  Enter: save  Esc: back"
 )
 
 // Status text

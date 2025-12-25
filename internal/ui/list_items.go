@@ -1,7 +1,10 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/data"
 	"github.com/charmbracelet/bubbles/list"
 )
 
@@ -9,6 +12,31 @@ import (
 type MatchListItem struct {
 	Match   api.Match
 	Display MatchDisplay
+}
+
+// LeagueListItem implements the list.Item interface for league selection.
+type LeagueListItem struct {
+	League   data.LeagueInfo
+	Selected bool
+}
+
+// Title returns the league name with selection indicator.
+func (l LeagueListItem) Title() string {
+	checkbox := "[ ]"
+	if l.Selected {
+		checkbox = "[x]"
+	}
+	return fmt.Sprintf("%s %s", checkbox, l.League.Name)
+}
+
+// Description returns the country.
+func (l LeagueListItem) Description() string {
+	return l.League.Country
+}
+
+// FilterValue returns the value used for filtering (league name + country).
+func (l LeagueListItem) FilterValue() string {
+	return l.League.Name + " " + l.League.Country
 }
 
 // Title returns the match title for the list item.

@@ -172,31 +172,33 @@ func (m model) loadStatsMatchDetails(matchID int) (tea.Model, tea.Cmd) {
 }
 
 // handleSettingsViewKeys processes keyboard input for the settings view.
-// Handles navigation (up/down), selection toggle (space), save (enter), and cancel (esc).
+// Follows the same pattern as handleStatsSelection for consistent behavior.
 func (m model) handleSettingsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.settingsState == nil {
 		return m, nil
 	}
 
-	switch msg.String() {
-	case "j", "down":
-		m.settingsState.MoveDown()
-	case "k", "up":
-		m.settingsState.MoveUp()
-	case " ": // Space to toggle
-		m.settingsState.Toggle()
-	case "enter":
-		// Save settings and return to main menu
-		_ = m.settingsState.Save() // Best-effort save
-		m.settingsState = nil
-		m.currentView = viewMain
-		m.selected = 0
-	case "esc":
-		// Cancel and return to main menu without saving
-		m.settingsState = nil
-		m.currentView = viewMain
-		m.selected = 0
+	// Check if list is filtering - if so, let list handle ALL keys
+	isFiltering := m.settingsState.List.FilterState() == list.Filtering
+
+	// Only handle custom keys when NOT filtering
+	if !isFiltering {
+		switch msg.String() {
+		case " ": // Space to toggle selection
+			m.settingsState.Toggle()
+			return m, nil
+		case "enter":
+			// Save settings and return to main menu
+			_ = m.settingsState.Save() // Best-effort save
+			m.settingsState = nil
+			m.currentView = viewMain
+			m.selected = 0
+			return m, nil
+		}
 	}
 
-	return m, nil
+	// Delegate to list component for navigation, filtering, etc.
+	var listCmd tea.Cmd
+	m.settingsState.List, listCmd = m.settingsState.List.Update(msg)
+	return m, listCmd
 }
