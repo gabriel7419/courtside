@@ -5,11 +5,42 @@ package notify
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"sync"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/assets"
 	"github.com/0xjuanma/golazo/internal/constants"
+	"github.com/0xjuanma/golazo/internal/data"
 	"github.com/gen2brain/beeep"
 )
+
+var (
+	iconPath     string
+	iconPathOnce sync.Once
+)
+
+// getIconPath returns the path to the cached notification icon.
+// The icon is embedded in the binary and written to the cache directory on first use.
+// Returns empty string if caching fails (notification will work without icon).
+func getIconPath() string {
+	iconPathOnce.Do(func() {
+		cacheDir, err := data.CacheDir()
+		if err != nil {
+			return
+		}
+
+		iconPath = filepath.Join(cacheDir, "icon.png")
+
+		// Only write if file doesn't exist
+		if _, err := os.Stat(iconPath); os.IsNotExist(err) {
+			if err := os.WriteFile(iconPath, assets.Logo, 0644); err != nil {
+				iconPath = "" // Reset on write failure
+			}
+		}
+	})
+	return iconPath
+}
 
 // Notifier defines the interface for sending desktop notifications.
 // This allows for easy mocking in tests and potential future implementations.
@@ -59,7 +90,8 @@ func (n *DesktopNotifier) Goal(event api.MatchEvent, homeTeam, awayTeam api.Team
 
 	// Send notification via beeep (cross-platform)
 	// Errors are ignored - OS notification is best-effort, beep already played
-	_ = beeep.Notify(title, message, "")
+	// Icon shows golazo logo on Linux/Windows; macOS shows terminal app icon
+	_ = beeep.Notify(title, message, getIconPath())
 
 	return nil
 }

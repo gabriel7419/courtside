@@ -45,6 +45,25 @@ func ConfigDir() (string, error) {
 	return configPath, nil
 }
 
+// CacheDir returns the path to the golazo cache directory.
+// Uses os.UserCacheDir() which returns:
+//   - Linux: ~/.cache/golazo (or $XDG_CACHE_HOME/golazo)
+//   - macOS: ~/Library/Caches/golazo
+//   - Windows: %LocalAppData%/golazo
+func CacheDir() (string, error) {
+	userCache, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("get user cache directory: %w", err)
+	}
+
+	cachePath := filepath.Join(userCache, "golazo")
+	if err := os.MkdirAll(cachePath, 0755); err != nil {
+		return "", fmt.Errorf("create cache directory: %w", err)
+	}
+
+	return cachePath, nil
+}
+
 // MockDataPath returns the path to the mock data file.
 func MockDataPath() (string, error) {
 	dir, err := ConfigDir()
