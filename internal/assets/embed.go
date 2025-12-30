@@ -10,4 +10,3 @@ import (
 //
 //go:embed golazo-logo.png
 var Logo []byte
-

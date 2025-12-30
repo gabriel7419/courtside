@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Windows Self-Update** - Fixed `--update` failing when golazo is already running
 
 ## [0.7.0] - 2025-12-28
 

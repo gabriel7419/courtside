@@ -59,14 +59,49 @@ if (-not (Test-Path $installDir)) {
 }
 
 $installPath = Join-Path $installDir "$binaryName.exe"
+$tempPath = Join-Path $installDir "$binaryName.exe.new"
+$oldPath = Join-Path $installDir "$binaryName.exe.old"
 
-# Download the binary
+# Clean up any leftover files from previous updates
+if (Test-Path $oldPath) { Remove-Item $oldPath -Force -ErrorAction SilentlyContinue }
+if (Test-Path $tempPath) { Remove-Item $tempPath -Force -ErrorAction SilentlyContinue }
+
+# Download the binary to a temp file first
 Write-Host "Downloading $binaryName $latest for windows/$arch..." -ForegroundColor Cyan
 try {
-    Invoke-WebRequest -Uri $url -OutFile $installPath -UseBasicParsing
+    Invoke-WebRequest -Uri $url -OutFile $tempPath -UseBasicParsing
 } catch {
     Write-Host "Failed to download binary: $_" -ForegroundColor Red
     exit 1
+}
+
+# Handle self-update: rename running exe, then move new one into place
+if (Test-Path $installPath) {
+    try {
+        # Rename running exe (Windows allows this even while running)
+        Rename-Item -Path $installPath -NewName "$binaryName.exe.old" -Force
+    } catch {
+        Write-Host "Failed to rename existing binary: $_" -ForegroundColor Red
+        Remove-Item $tempPath -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
+}
+
+# Move new binary into place
+try {
+    Rename-Item -Path $tempPath -NewName "$binaryName.exe" -Force
+} catch {
+    Write-Host "Failed to install new binary: $_" -ForegroundColor Red
+    # Try to restore the old binary
+    if (Test-Path $oldPath) {
+        Rename-Item -Path $oldPath -NewName "$binaryName.exe" -Force -ErrorAction SilentlyContinue
+    }
+    exit 1
+}
+
+# Clean up old binary (best effort - may fail if still running, will be cleaned next update)
+if (Test-Path $oldPath) {
+    Remove-Item $oldPath -Force -ErrorAction SilentlyContinue
 }
 
 # Add to PATH if not already present
