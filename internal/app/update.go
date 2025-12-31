@@ -632,11 +632,23 @@ func (m model) handleStatsDayData(msg statsDayDataMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Add upcoming matches (only from today)
+	// Add upcoming matches (only from today), deduplicated by match ID
 	if msg.isToday && len(msg.upcoming) > 0 {
-		m.statsData.TodayUpcoming = append(m.statsData.TodayUpcoming, msg.upcoming...)
+		// Build a set of existing IDs to avoid duplicates
+		existingIDs := make(map[int]bool)
+		for _, match := range m.statsData.TodayUpcoming {
+			existingIDs[match.ID] = true
+		}
 
-		// Also populate liveUpcomingMatches for the live view
+		// Only add matches that aren't already in the list
+		for _, match := range msg.upcoming {
+			if !existingIDs[match.ID] {
+				m.statsData.TodayUpcoming = append(m.statsData.TodayUpcoming, match)
+				existingIDs[match.ID] = true
+			}
+		}
+
+		// Populate liveUpcomingMatches for the live view
 		upcomingDisplay := make([]ui.MatchDisplay, 0, len(m.statsData.TodayUpcoming))
 		for _, match := range m.statsData.TodayUpcoming {
 			upcomingDisplay = append(upcomingDisplay, ui.MatchDisplay{Match: match})
