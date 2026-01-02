@@ -486,8 +486,16 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 
 		for _, g := range goals {
 			isHome := g.Team.ID == details.HomeTeam.ID
-			goalText := renderGoalLine(g, contentWidth-4)
-			goalLine := renderAlignedEvent(goalText, isHome, contentWidth)
+			// Build goal content without minute (minute will be centered)
+			player := "Unknown"
+			if g.Player != nil {
+				player = *g.Player
+			}
+			goalContent := neonScoreStyle.Render("GOAL") + " " + neonValueStyle.Render(player)
+			if g.Assist != nil && *g.Assist != "" {
+				goalContent += neonDimStyle.Render(fmt.Sprintf(" (%s)", *g.Assist))
+			}
+			goalLine := renderCenterAlignedEvent(fmt.Sprintf("%d'", g.Minute), goalContent, isHome, contentWidth)
 			lines = append(lines, goalLine)
 		}
 	}
@@ -520,13 +528,10 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 				cardStyle = neonRedCardStyle
 			}
 
-			// Format: ▪ 28' PlayerName (aligned by team)
-			cardText := fmt.Sprintf("%s %s %s",
-				cardStyle.Render(cardSymbol),
-				neonScoreStyle.Render(fmt.Sprintf("%d'", card.Minute)),
-				neonValueStyle.Render(player))
+			// Build card content without minute (minute will be centered)
+			cardContent := cardStyle.Render(cardSymbol+" CARD") + " " + neonValueStyle.Render(player)
 			isHome := card.Team.ID == details.HomeTeam.ID
-			cardLine := renderAlignedEvent(cardText, isHome, contentWidth)
+			cardLine := renderCenterAlignedEvent(fmt.Sprintf("%d'", card.Minute), cardContent, isHome, contentWidth)
 			lines = append(lines, cardLine)
 		}
 	}
@@ -599,26 +604,6 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 // for use by debug scripts. Renders match details in the Golazo stats view style.
 func RenderMatchDetailsPanel(width, height int, details *api.MatchDetails) string {
 	return renderStatsMatchDetailsPanel(width, height, details)
-}
-
-// renderGoalLine renders a single goal with scorer, minute, and assist
-func renderGoalLine(g api.MatchEvent, maxWidth int) string {
-	player := "Unknown"
-	if g.Player != nil {
-		player = *g.Player
-	}
-
-	minuteStr := neonScoreStyle.Render(fmt.Sprintf("%d'", g.Minute))
-	playerStr := neonValueStyle.Render(truncateString(player, maxWidth-10))
-
-	line := fmt.Sprintf("%s %s", minuteStr, playerStr)
-
-	// Add assist if available
-	if g.Assist != nil && *g.Assist != "" {
-		line += neonDimStyle.Render(fmt.Sprintf(" (%s)", truncateString(*g.Assist, 15)))
-	}
-
-	return line
 }
 
 // Fixed bar width for consistent UI

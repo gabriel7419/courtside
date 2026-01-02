@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Home/Away Event Alignment** - Match events (goals, cards, subs) now align home/away teams
+- **Center-Aligned Event Timeline** - Match events now display with centered time, home events expand left, away events expand right
 
 ### Changed
 
