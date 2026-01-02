@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Nix Flake support** - Added initial Nix flake for reproducible builds and development (Thanks @jcmuller)
 
 ### Changed
 
@@ -16,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-01-01
 
 ### Added
-- **New Leagues** - Add Colombian division A & B leagues, Ireland Premier & First Division. (Thanks @jcmuller & @ryandeering)
+- **New Leagues** - Add Colombian division A & B leagues, Ireland Premier & First Division (Thanks @jcmuller & @ryandeering)
 
 ### Changed
 - **Center-Aligned Event Timeline** - Match events now display with centered time, home events expand left, away events expand right
