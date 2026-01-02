@@ -486,15 +486,16 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 
 		for _, g := range goals {
 			isHome := g.Team.ID == details.HomeTeam.ID
-			// Build goal content without minute (minute will be centered)
+			// Build goal content with symbol+type adjacent to center time
 			player := "Unknown"
 			if g.Player != nil {
 				player = *g.Player
 			}
-			goalContent := neonScoreStyle.Render("GOAL") + " " + neonValueStyle.Render(player)
+			playerDetails := neonValueStyle.Render(player)
 			if g.Assist != nil && *g.Assist != "" {
-				goalContent += neonDimStyle.Render(fmt.Sprintf(" (%s)", *g.Assist))
+				playerDetails += neonDimStyle.Render(fmt.Sprintf(" (%s)", *g.Assist))
 			}
+			goalContent := buildEventContent(playerDetails, "●", neonScoreStyle.Render("GOAL"), isHome)
 			goalLine := renderCenterAlignedEvent(fmt.Sprintf("%d'", g.Minute), goalContent, isHome, contentWidth)
 			lines = append(lines, goalLine)
 		}
@@ -519,6 +520,7 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 			if card.Player != nil {
 				player = *card.Player
 			}
+			isHome := card.Team.ID == details.HomeTeam.ID
 
 			// Determine card type and apply appropriate color (using shared styles)
 			cardSymbol := CardSymbolYellow
@@ -528,9 +530,9 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 				cardStyle = neonRedCardStyle
 			}
 
-			// Build card content without minute (minute will be centered)
-			cardContent := cardStyle.Render(cardSymbol+" CARD") + " " + neonValueStyle.Render(player)
-			isHome := card.Team.ID == details.HomeTeam.ID
+			// Build card content with symbol+type adjacent to center time
+			playerDetails := neonValueStyle.Render(player)
+			cardContent := buildEventContent(playerDetails, cardSymbol, cardStyle.Render("CARD"), isHome)
 			cardLine := renderCenterAlignedEvent(fmt.Sprintf("%d'", card.Minute), cardContent, isHome, contentWidth)
 			lines = append(lines, cardLine)
 		}
