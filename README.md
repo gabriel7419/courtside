@@ -13,10 +13,10 @@
 A minimalist terminal user interface (TUI) for following football(i.e, soccer) matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.
 
 Golazo was created for those moments when you can't stream or watch matches live. It gives you a handy, non-intrusive, and minimalist way to keep up with your favourite football leagues.
+</div>
 
 > [!TIP]
 > If you like Golazo, give it a star or share it with your friends. That helps others find it and keeps the project going!
-</div>
 
 <div align="center">
   <img src="assets/golazo-demo.gif" alt="Golazo demo" width="800">
