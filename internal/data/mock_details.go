@@ -169,6 +169,9 @@ func getMockVenue(matchID int) string {
 		1004: "Civitas Metropolitano",
 		1005: "Parc des Princes",
 		1006: "San Siro",
+		1010: "St. James' Park",
+		1011: "Mestalla",
+		1012: "Diego Armando Maradona",
 	}
 	if v, ok := venues[matchID]; ok {
 		return v
@@ -189,6 +192,9 @@ func getMockReferee(matchID int) string {
 		1004: "Carlos del Cerro Grande",
 		1005: "Clement Turpin",
 		1006: "Felix Brych",
+		1010: "Simon Hooper",
+		1011: "Alejandro Hernandez",
+		1012: "Gianluca Rocchi",
 	}
 	if r, ok := referees[matchID]; ok {
 		return r
@@ -209,6 +215,9 @@ func getMockAttendance(matchID int) int {
 		1004: 68456,
 		1005: 48583,
 		1006: 75923,
+		1010: 52305,
+		1011: 43850,
+		1012: 54726,
 	}
 	if a, ok := attendances[matchID]; ok {
 		return a

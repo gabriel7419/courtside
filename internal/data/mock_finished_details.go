@@ -45,6 +45,36 @@ func generateFinishedMatchEvents(matchID int, match api.Match) []api.MatchEvent 
 
 	switch matchID {
 	// ═══════════════════════════════════════════════
+	// TODAY'S MATCHES
+	// ═══════════════════════════════════════════════
+
+	case 1010: // Newcastle 2-1 Aston Villa
+		events = []api.MatchEvent{
+			{ID: 51, Minute: 18, Type: "goal", Team: match.HomeTeam, Player: stringPtr("Isak"), Timestamp: time.Now()},
+			{ID: 52, Minute: 34, Type: "card", Team: match.AwayTeam, Player: stringPtr("Konsa"), EventType: stringPtr("yellow"), Timestamp: time.Now()},
+			{ID: 53, Minute: 56, Type: "goal", Team: match.AwayTeam, Player: stringPtr("Watkins"), Assist: stringPtr("McGinn"), Timestamp: time.Now()},
+			{ID: 54, Minute: 78, Type: "goal", Team: match.HomeTeam, Player: stringPtr("Gordon"), Timestamp: time.Now()},
+		}
+
+	case 1011: // Valencia 0-2 Athletic Bilbao
+		events = []api.MatchEvent{
+			{ID: 55, Minute: 23, Type: "card", Team: match.HomeTeam, Player: stringPtr("Mosquera"), EventType: stringPtr("yellow"), Timestamp: time.Now()},
+			{ID: 56, Minute: 45, Type: "goal", Team: match.AwayTeam, Player: stringPtr("Williams"), Timestamp: time.Now()},
+			{ID: 57, Minute: 67, Type: "substitution", Team: match.HomeTeam, Player: stringPtr("Hugo Duro"), EventType: stringPtr("sub_in"), Timestamp: time.Now()},
+			{ID: 58, Minute: 82, Type: "goal", Team: match.AwayTeam, Player: stringPtr("Sancet"), Assist: stringPtr("Williams"), Timestamp: time.Now()},
+		}
+
+	case 1012: // Napoli 3-1 Roma
+		events = []api.MatchEvent{
+			{ID: 59, Minute: 12, Type: "goal", Team: match.HomeTeam, Player: stringPtr("Osimhen"), Timestamp: time.Now()},
+			{ID: 60, Minute: 28, Type: "goal", Team: match.AwayTeam, Player: stringPtr("Dybala"), Timestamp: time.Now()},
+			{ID: 61, Minute: 45, Type: "card", Team: match.AwayTeam, Player: stringPtr("Cristante"), EventType: stringPtr("yellow"), Timestamp: time.Now()},
+			{ID: 62, Minute: 56, Type: "goal", Team: match.HomeTeam, Player: stringPtr("Kvaratskhelia"), Assist: stringPtr("Osimhen"), Timestamp: time.Now()},
+			{ID: 63, Minute: 78, Type: "substitution", Team: match.HomeTeam, Player: stringPtr("Simeone"), EventType: stringPtr("sub_in"), Timestamp: time.Now()},
+			{ID: 64, Minute: 89, Type: "goal", Team: match.HomeTeam, Player: stringPtr("Politano"), Timestamp: time.Now()},
+		}
+
+	// ═══════════════════════════════════════════════
 	// PREMIER LEAGUE
 	// ═══════════════════════════════════════════════
 

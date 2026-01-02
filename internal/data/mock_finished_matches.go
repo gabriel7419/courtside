@@ -7,11 +7,88 @@ import (
 )
 
 // MockFinishedMatches returns finished matches for the stats view.
-// 6 matches from preferred leagues: Premier League, La Liga, Champions League
+// 9 matches from preferred leagues: Premier League, La Liga, Champions League
 func MockFinishedMatches() []api.Match {
 	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	return []api.Match{
+		// ═══════════════════════════════════════════════
+		// TODAY'S MATCHES (3 matches)
+		// ═══════════════════════════════════════════════
+
+		// Today 1: Newcastle 2-1 Aston Villa (Premier League)
+		{
+			ID: 1010,
+			League: api.League{
+				ID:   47,
+				Name: "Premier League",
+			},
+			HomeTeam: api.Team{
+				ID:        39,
+				Name:      "Newcastle United",
+				ShortName: "Newcastle",
+			},
+			AwayTeam: api.Team{
+				ID:        66,
+				Name:      "Aston Villa",
+				ShortName: "Villa",
+			},
+			Status:    api.MatchStatusFinished,
+			HomeScore: intPtr(2),
+			AwayScore: intPtr(1),
+			MatchTime: timePtr(today.Add(14 * time.Hour)), // 14:00 today
+			Round:     "Matchday 18",
+		},
+
+		// Today 2: Valencia 0-2 Athletic Bilbao (La Liga)
+		{
+			ID: 1011,
+			League: api.League{
+				ID:   87,
+				Name: "La Liga",
+			},
+			HomeTeam: api.Team{
+				ID:        532,
+				Name:      "Valencia",
+				ShortName: "Valencia",
+			},
+			AwayTeam: api.Team{
+				ID:        531,
+				Name:      "Athletic Bilbao",
+				ShortName: "Athletic",
+			},
+			Status:    api.MatchStatusFinished,
+			HomeScore: intPtr(0),
+			AwayScore: intPtr(2),
+			MatchTime: timePtr(today.Add(16 * time.Hour)), // 16:00 today
+			Round:     "Matchday 18",
+		},
+
+		// Today 3: Napoli 3-1 Roma (Champions League)
+		{
+			ID: 1012,
+			League: api.League{
+				ID:   42,
+				Name: "UEFA Champions League",
+			},
+			HomeTeam: api.Team{
+				ID:        492,
+				Name:      "Napoli",
+				ShortName: "Napoli",
+			},
+			AwayTeam: api.Team{
+				ID:        497,
+				Name:      "AS Roma",
+				ShortName: "Roma",
+			},
+			Status:    api.MatchStatusFinished,
+			HomeScore: intPtr(3),
+			AwayScore: intPtr(1),
+			MatchTime: timePtr(today.Add(18 * time.Hour)), // 18:00 today
+			Round:     "Round of 16 - 1st Leg",
+		},
+
 		// ═══════════════════════════════════════════════
 		// PREMIER LEAGUE (2 matches)
 		// ═══════════════════════════════════════════════

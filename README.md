@@ -19,7 +19,7 @@ Golazo was created for those moments when you can't stream or watch matches live
 > If you enjoy Golazo, give it a star and share it with your friends. That helps others find it and keeps the project going!
 
 <div align="center">
-  <img src="assets/golazo-demo.gif" alt="Golazo demo" width="800">
+  <img src="assets/golazo-demo-v0.9.0.gif" alt="Golazo demo" width="800">
 </div>
 
 ## Installation/Update

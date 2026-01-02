@@ -38,11 +38,7 @@ Escape
 
 # Select Finished Matches
 Enter
-Sleep 500ms
-Right
-Sleep 300ms
-Right
-Sleep 300ms
+Sleep 1.5s
 
 # Navigate list (5 matches)
 Down
@@ -51,7 +47,3 @@ Down
 Sleep 1.5s
 Down
 Sleep 1.5s
-Down
-Sleep 1.5s
-Down
-Sleep 1s
