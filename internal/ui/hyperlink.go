@@ -67,7 +67,7 @@ func CreateGoalLinkDisplay(goalText, replayURL string) string {
 	// Otherwise, return unchanged text (no visible change to user)
 	if supportsHyperlinks() {
 		// Create a clickable indicator
-		indicator := "📺"
+		indicator := ReplayLinkIndicator
 		linkedIndicator := Hyperlink(indicator, replayURL)
 		if goalText == "" {
 			return linkedIndicator
@@ -157,7 +157,7 @@ func OpenURL(url string) error {
 }
 
 // ReplayLinkIndicator is the visual indicator for replay links.
-const ReplayLinkIndicator = "📺"
+const ReplayLinkIndicator = "[▶REPLAY]"
 
 // ReplayLinkIndicatorAlt is an alternative ASCII indicator for terminals without emoji.
-const ReplayLinkIndicatorAlt = "[▶]"
+const ReplayLinkIndicatorAlt = "[replay]"
