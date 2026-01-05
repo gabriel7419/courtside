@@ -1,6 +1,7 @@
 package reddit
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,6 +25,9 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 	homeNorm := normalizeTeamName(goal.HomeTeam)
 	awayNorm := normalizeTeamName(goal.AwayTeam)
 	minutePattern := buildMinutePattern(goal.Minute)
+
+	// Build score pattern for validation (e.g., "1-0", "2-1", etc.)
+	scorePattern := buildScorePattern(goal.HomeScore, goal.AwayScore)
 
 	var bestMatch *SearchResult
 	bestScore := 0
@@ -66,9 +70,19 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 			score += 10
 		}
 
-		// Check for minute (highly valuable)
-		if minutePattern.MatchString(result.Title) {
+		// Check for minute (highly valuable, but strict)
+		minuteFound := minutePattern.MatchString(result.Title)
+		if minuteFound {
 			score += 25
+		}
+
+		// Check for score match (required for high confidence)
+		scoreMatch := scorePattern.MatchString(result.Title)
+		if scoreMatch {
+			score += 20  // High bonus for score match
+		} else {
+			// If score doesn't match, heavily penalize this result
+			score -= 15
 		}
 
 		// Check for scorer name if available
@@ -88,8 +102,9 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 		}
 	}
 
-	// Require minimum score for a match
-	if bestScore < 20 {
+	// Require minimum score for a match, with higher requirement for score matches
+	minScore := 45  // Require score match + minute match + team names
+	if bestScore < minScore {
 		return nil
 	}
 
@@ -186,14 +201,37 @@ func containsName(title, nameNorm string) bool {
 
 // buildMinutePattern creates a regex to match a minute in various formats.
 // Matches: "41'", "41" (at word boundary), "41+2'" etc.
+// Also checks +/-2 minute tolerance for better matching.
 func buildMinutePattern(minute int) *regexp.Regexp {
-	// Match the minute with optional added time
-	// e.g., "45", "45'", "45+2", "45+2'"
-	patternStr := `\b` + strconv.Itoa(minute) + `(\+\d+)?'?\b`
+	// Create patterns for minute ±2 tolerance
+	var patterns []string
+	for offset := -2; offset <= 2; offset++ {
+		targetMinute := minute + offset
+		if targetMinute >= 0 {
+			patterns = append(patterns, `\b`+strconv.Itoa(targetMinute)+`(\+\d+)?'?\b`)
+		}
+	}
+
+	// Join with OR operator
+	patternStr := strings.Join(patterns, "|")
 	compiled, err := regexp.Compile(patternStr)
 	if err != nil {
-		// Fallback to simple string match
-		return regexp.MustCompile(strconv.Itoa(minute))
+		// Fallback to original single minute pattern
+		return regexp.MustCompile(`\b` + strconv.Itoa(minute) + `(\+\d+)?'?\b`)
+	}
+	return compiled
+}
+
+// buildScorePattern creates a regex to match the score at the time of goal.
+// Matches various score formats like "1-0", "2-1", "[1-0]", etc.
+func buildScorePattern(homeScore, awayScore int) *regexp.Regexp {
+	scoreStr := fmt.Sprintf("%d-%d", homeScore, awayScore)
+	// Match score in various formats: "1-0", "[1-0]", "(1-0)", "1-0", etc.
+	patternStr := `[\[\(\s]*` + regexp.QuoteMeta(scoreStr) + `[\]\)\s]*`
+	compiled, err := regexp.Compile(patternStr)
+	if err != nil {
+		// Fallback to exact match
+		return regexp.MustCompile(regexp.QuoteMeta(scoreStr))
 	}
 	return compiled
 }
