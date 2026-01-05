@@ -328,6 +328,8 @@ func fetchGoalLinks(redditClient *reddit.Client, details *api.MatchDetails) tea.
 				continue
 			}
 
+			// Debug log goal extraction (will be logged when redditClient.GoalLinks is called)
+
 			scorer := ""
 			if event.Player != nil {
 				scorer = *event.Player

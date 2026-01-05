@@ -1019,7 +1019,7 @@ func (m model) handleGoalLinks(msg goalLinksMsg) (tea.Model, tea.Cmd) {
 		m.goalLinks[key] = link
 		if link != nil && link.URL != "" && link.URL != "__NOT_FOUND__" {
 			validLinks++
-			m.debugLog(fmt.Sprintf("Cached goal link: %d:%d → %s", key.MatchID, key.Minute, link.URL))
+			m.debugLog(fmt.Sprintf("Cached goal link: %d:%d → %s (post: %s)", key.MatchID, key.Minute, link.URL, link.PostURL))
 		} else if link != nil && link.URL == "__NOT_FOUND__" {
 			failedLinks++
 			m.debugLog(fmt.Sprintf("No link found: %d:%d", key.MatchID, key.Minute))
@@ -1156,8 +1156,6 @@ func (m model) trimDebugLogToMaxLines(logFile string, maxLines int) error {
 	// Write back the trimmed content
 	return os.WriteFile(logFile, []byte(strings.Join(lines, "\n")), 0644)
 }
-
-
 
 // GoalReplayURL returns the replay URL for a goal if available.
 // Returns empty string if no replay link is cached.

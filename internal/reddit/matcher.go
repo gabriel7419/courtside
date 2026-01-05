@@ -79,7 +79,7 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 		// Check for score match (required for high confidence)
 		scoreMatch := scorePattern.MatchString(result.Title)
 		if scoreMatch {
-			score += 20  // High bonus for score match
+			score += 20 // High bonus for score match
 		} else {
 			// If score doesn't match, heavily penalize this result
 			score -= 15
@@ -103,7 +103,7 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 	}
 
 	// Require minimum score for a match, with higher requirement for score matches
-	minScore := 45  // Require score match + minute match + team names
+	minScore := 45 // Require score match + minute match + team names
 	if bestScore < minScore {
 		return nil
 	}

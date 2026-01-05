@@ -53,7 +53,6 @@ func (r *rateLimiter) wait() {
 	r.lastRequest = time.Now()
 }
 
-
 // Simple user agent exactly like main branch
 var userAgents = []string{
 	"golazo:v1.0.0 (by /u/golazo_app)",
@@ -76,10 +75,10 @@ func NewPublicJSONFetcher() *PublicJSONFetcher {
 func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time) ([]SearchResult, error) {
 	f.rateLimiter.wait()
 
-	// Build timestamp range for filtering (match day -1 to +2 days)
-	// Goals are usually posted within hours of happening, but we add buffer
-	startTime := matchTime.Add(-24 * time.Hour).Unix()
-	endTime := matchTime.Add(48 * time.Hour).Unix()
+	// Build timestamp range for filtering (match day only ±12 hours)
+	// Goal videos are posted very soon after goals happen - limit to match day
+	startTime := matchTime.Add(-12 * time.Hour).Unix()
+	endTime := matchTime.Add(12 * time.Hour).Unix()
 
 	// Build search URL for r/soccer with Media flair filter and timestamp
 	// Reddit CloudSearch supports timestamp:START..END syntax
@@ -133,9 +132,9 @@ func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time)
 // Client provides goal replay link fetching from Reddit r/soccer.
 // Uses Reddit's public JSON API for goal link retrieval.
 type Client struct {
-	fetcher     Fetcher        // Reddit public API fetcher
+	fetcher     Fetcher // Reddit public API fetcher
 	cache       *GoalLinkCache
-	debugLogger DebugLogger    // Optional debug logger function
+	debugLogger DebugLogger // Optional debug logger function
 }
 
 // debugLog is a helper method to safely call the debug logger if it exists
@@ -153,8 +152,8 @@ func NewClient() (*Client, error) {
 	}
 
 	return &Client{
-		fetcher:   NewPublicJSONFetcher(),
-		cache:     cache,
+		fetcher: NewPublicJSONFetcher(),
+		cache:   cache,
 	}, nil
 }
 
@@ -281,7 +280,7 @@ func (c *Client) GoalLinks(goals []GoalInfo) map[GoalLinkKey]*GoalLink {
 // searchForGoal searches Reddit for a specific goal with conservative retry logic.
 func (c *Client) searchForGoal(goal GoalInfo) (*GoalLink, error) {
 	// Conservative retry logic - Reddit is very aggressive with CAPTCHA detection
-	maxRetries := 2  // Reduced from 3
+	maxRetries := 2               // Reduced from 3
 	baseDelay := 60 * time.Second // Increased delay between retries
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -324,13 +323,19 @@ func (c *Client) searchForGoalOnce(goal GoalInfo) (*GoalLink, error) {
 		c.debugLog(fmt.Sprintf("Reddit search failed for query '%s': %v", query1, err))
 	} else {
 		c.debugLog(fmt.Sprintf("Reddit search returned %d results for query '%s'", len(results1), query1))
+		// Debug: log the first few result titles
+		for i, result := range results1 {
+			if i < 3 { // Log first 3 results
+				c.debugLog(fmt.Sprintf("Result %d: '%s'", i+1, result.Title))
+			}
+		}
 	}
 	if err == nil {
 		// Check if we found a good match with the first strategy
 		match := findBestMatch(results1, goal)
-		c.debugLog(fmt.Sprintf("findBestMatch result for goal %d:%d: %v", goal.MatchID, goal.Minute, match != nil))
+		c.debugLog(fmt.Sprintf("findBestMatch result for goal %d:%d (score %d-%d): %v", goal.MatchID, goal.Minute, goal.HomeScore, goal.AwayScore, match != nil))
 		if match != nil {
-			c.debugLog(fmt.Sprintf("Found goal link for %d:%d: %s", goal.MatchID, goal.Minute, match.URL))
+			c.debugLog(fmt.Sprintf("Found goal link for %d:%d: %s (post: %s)", goal.MatchID, goal.Minute, match.URL, match.PostURL))
 			// Found a match, return it immediately to avoid additional API calls
 			return &GoalLink{
 				MatchID:   goal.MatchID,
