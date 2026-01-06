@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xjuanma/golazo/internal/app"
 	"github.com/0xjuanma/golazo/internal/constants"
+	"github.com/0xjuanma/golazo/internal/data"
 	"github.com/0xjuanma/golazo/internal/ui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -38,7 +39,27 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		p := tea.NewProgram(app.New(mockFlag, debugFlag), tea.WithAltScreen())
+		// Determine banner conditions
+		isDevBuild := Version == "dev"
+		newVersionAvailable := false
+
+		if !isDevBuild {
+			if latestVersion, err := data.LoadLatestVersion(); err == nil && latestVersion != "" {
+				// Check if new version is available
+				newVersionAvailable = Version != latestVersion
+			}
+		}
+
+		// Check for updates in background (non-blocking)
+		go func() {
+			if data.ShouldCheckVersion() {
+				if version, err := data.CheckLatestVersion(); err == nil {
+					data.SaveLatestVersion(version)
+				}
+			}
+		}()
+
+		p := tea.NewProgram(app.New(mockFlag, debugFlag, isDevBuild, newVersionAvailable), tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running application: %v\n", err)
 			os.Exit(1)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	"github.com/0xjuanma/golazo/internal/data"
 	"github.com/0xjuanma/golazo/internal/fotmob"
 	"github.com/0xjuanma/golazo/internal/notify"
@@ -82,9 +83,11 @@ type model struct {
 	pendingSelection int // Tracks which view is being preloaded (-1 = none, 0 = stats, 1 = live)
 
 	// Configuration
-	useMockData    bool
-	debugMode      bool // Enable debug logging to file
-	statsDateRange int  // 1, 3, or 5 days (default: 1)
+	useMockData         bool
+	debugMode           bool // Enable debug logging to file
+	isDevBuild          bool // Whether this is a development build
+	newVersionAvailable bool // Whether a new version of Golazo is available
+	statsDateRange      int  // 1, 3, or 5 days (default: 1)
 
 	// Settings view state
 	settingsState *ui.SettingsState
@@ -104,7 +107,9 @@ type model struct {
 // New creates a new application model with default values.
 // useMockData determines whether to use mock data instead of real API data.
 // debugMode enables debug logging to a file.
-func New(useMockData bool, debugMode bool) model {
+// isDevBuild indicates if this is a development build.
+// newVersionAvailable indicates if a newer version is available.
+func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable bool) model {
 	s := spinner.New()
 	s.Spinner = spinner.Line
 	s.Style = ui.SpinnerStyle()
@@ -181,6 +186,8 @@ func New(useMockData bool, debugMode bool) model {
 		matchDetailsCache:   make(map[int]*api.MatchDetails),
 		useMockData:         useMockData,
 		debugMode:           debugMode,
+		isDevBuild:          isDevBuild,
+		newVersionAvailable: newVersionAvailable,
 		fotmobClient:        fotmob.NewClient(),
 		parser:              fotmob.NewLiveUpdateParser(),
 		redditClient:        redditClient,
@@ -196,6 +203,21 @@ func New(useMockData bool, debugMode bool) model {
 		statsDateRange:      1,
 		pendingSelection:    -1, // No pending selection
 	}
+}
+
+// getStatusBannerType returns the appropriate status banner type based on current model state.
+// Priority: Debug > Dev > New Version > None
+func (m model) getStatusBannerType() constants.StatusBannerType {
+	if m.debugMode {
+		return constants.StatusBannerDebug
+	}
+	if m.isDevBuild {
+		return constants.StatusBannerDev
+	}
+	if m.newVersionAvailable {
+		return constants.StatusBannerNewVersion
+	}
+	return constants.StatusBannerNone
 }
 
 // Init initializes the application.

@@ -4,9 +4,12 @@ package data
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -136,4 +139,96 @@ func LiveUpdates(matchID int) ([]string, error) {
 	}
 
 	return result, nil
+}
+
+// LoadLatestVersion reads the latest known version from storage.
+// Returns empty string if file doesn't exist or can't be read.
+func LoadLatestVersion() (string, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	versionFile := filepath.Join(dir, "latest_version.txt")
+	data, err := os.ReadFile(versionFile)
+	if err != nil {
+		return "", nil // Return empty if file doesn't exist
+	}
+
+	return strings.TrimSpace(string(data)), nil
+}
+
+// SaveLatestVersion saves the latest version to storage.
+func SaveLatestVersion(version string) error {
+	dir, err := ConfigDir()
+	if err != nil {
+		return err
+	}
+
+	versionFile := filepath.Join(dir, "latest_version.txt")
+	return os.WriteFile(versionFile, []byte(strings.TrimSpace(version)), 0644)
+}
+
+// CheckLatestVersion fetches the latest version from GitHub releases.
+// Uses GitHub's redirect URL which is simpler than the API.
+// Returns the version tag (e.g., "v1.2.3").
+func CheckLatestVersion() (string, error) {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get("https://github.com/0xjuanma/golazo/releases/latest")
+	if err != nil {
+		return "", fmt.Errorf("fetch latest release: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// GitHub redirects to: https://github.com/0xjuanma/golazo/releases/tag/v1.2.3
+	// Extract version from the final URL
+	finalURL := resp.Request.URL.String()
+
+	// Look for "/releases/tag/" in the URL
+	if idx := strings.LastIndex(finalURL, "/releases/tag/"); idx != -1 {
+		version := finalURL[idx+len("/releases/tag/"):]
+		if version != "" {
+			return version, nil
+		}
+	}
+
+	// Fallback: try to read from response body (in case redirect doesn't work)
+	body, err := io.ReadAll(resp.Body)
+	if err == nil && len(body) > 0 {
+		// This is a fallback and might not work, but better than nothing
+		bodyStr := string(body)
+		if idx := strings.Index(bodyStr, "/releases/tag/"); idx != -1 {
+			start := idx + len("/releases/tag/")
+			end := strings.Index(bodyStr[start:], "\"")
+			if end != -1 {
+				version := bodyStr[start : start+end]
+				if version != "" {
+					return version, nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not extract version from GitHub response")
+}
+
+// ShouldCheckVersion returns true if we should check for a new version.
+// Checks if the latest_version.txt file is older than 24 hours.
+func ShouldCheckVersion() bool {
+	dir, err := ConfigDir()
+	if err != nil {
+		return false
+	}
+
+	versionFile := filepath.Join(dir, "latest_version.txt")
+	info, err := os.Stat(versionFile)
+	if err != nil {
+		return true // File doesn't exist, should check
+	}
+
+	// Check if file is older than 24 hours
+	return time.Since(info.ModTime()) > 24*time.Hour
 }

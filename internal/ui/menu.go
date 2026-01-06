@@ -39,9 +39,8 @@ var (
 // sp is the spinner model to display when loading (for other views).
 // randomSpinner is the random character spinner for main view.
 // loading indicates if the spinner should be shown.
-// debugMode shows a debug indicator when enabled.
-// Debug logs are automatically rotated at 10MB and limited to ~1000 recent lines.
-func RenderMainMenu(width, height, selected int, sp spinner.Model, randomSpinner *RandomCharSpinner, loading bool, debugMode bool) string {
+// bannerType determines what status banner (if any) to display at the top.
+func RenderMainMenu(width, height, selected int, sp spinner.Model, randomSpinner *RandomCharSpinner, loading bool, bannerType constants.StatusBannerType) string {
 	menuItems := []string{
 		constants.MenuStats,
 		constants.MenuLiveMatches,
@@ -79,21 +78,17 @@ func RenderMainMenu(width, height, selected int, sp spinner.Model, randomSpinner
 		spinnerContent = spinnerStyle.Render("")
 	}
 
-	// Add debug indicator if debug mode is enabled
-	var debugIndicator string
-	if debugMode {
-		debugStyle := lipgloss.NewStyle().
-			Foreground(neonCyan).
-			Bold(true).
-			Align(lipgloss.Center)
-		debugIndicator = debugStyle.Render("[DEBUG MODE] Logs: ~/.golazo/golazo_debug.log") + "\n"
+	// Add status banner if needed
+	statusBanner := renderStatusBanner(bannerType, width)
+	if statusBanner != "" {
+		statusBanner += "\n"
 	}
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		title,
 		"\n",
-		debugIndicator,
+		statusBanner,
 		spinnerContent,
 		"\n",
 		menuContent,
