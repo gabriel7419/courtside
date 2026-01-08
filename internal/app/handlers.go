@@ -136,7 +136,8 @@ func (m model) handleStatsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		// Tab = toggle focus between left and right panels
 		m.statsRightPanelFocused = !m.statsRightPanelFocused
-		m.debugLog(fmt.Sprintf("Panel focus toggled: rightPanelFocused=%v", m.statsRightPanelFocused))
+		// Reset scroll position when changing focus (both ways for consistency)
+		m.statsScrollOffset = 0
 		return m, nil
 	default:
 		return m, nil

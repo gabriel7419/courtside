@@ -374,7 +374,7 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 // Rebuilt to match live view structure exactly: spinner at top, left panel (matches), right panel (details).
 // daysLoaded and totalDays show loading progress during progressive loading.
 // Note: Upcoming matches are now shown in the Live view instead.
-func RenderStatsViewWithList(width, height int, finishedList list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int, daysLoaded int, totalDays int, goalLinks GoalLinksMap, bannerType constants.StatusBannerType, detailsViewport *viewport.Model, rightPanelFocused bool) string {
+func RenderStatsViewWithList(width, height int, finishedList list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int, daysLoaded int, totalDays int, goalLinks GoalLinksMap, bannerType constants.StatusBannerType, detailsViewport *viewport.Model, rightPanelFocused bool, scrollOffset int) string {
 	// Handle edge case: if width/height not set, use defaults
 	if width <= 0 {
 		width = 80
@@ -440,47 +440,51 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, details
 
 	var rightPanel string
 
-	// Set up viewport for scrollable content (Goals/Cards/Statistics)
-	if detailsViewport != nil {
-		// Always reserve space for header + match details
-		headerHeight := strings.Count(headerContent, "\n") + 1 // Approximate header + basic info lines
-		availableHeight := panelHeight - headerHeight
-		if availableHeight < 5 {
-			availableHeight = 5 // Minimum scrollable area
-		}
-		detailsViewport.Height = availableHeight
-		detailsViewport.Width = rightWidth
+	// Manual scrolling: split content into lines and show visible portion
+	scrollableLines := strings.Split(scrollableContent, "\n")
 
-		// Preserve scroll position when updating content
-		currentYOffset := detailsViewport.YOffset
-		detailsViewport.SetContent(scrollableContent)
-		// Restore scroll position (clamp to valid range)
-		maxYOffset := len(strings.Split(scrollableContent, "\n")) - detailsViewport.Height
-		if maxYOffset < 0 {
-			maxYOffset = 0
-		}
-		if currentYOffset > maxYOffset {
-			currentYOffset = maxYOffset
-		}
-		if currentYOffset > 0 {
-			detailsViewport.SetYOffset(currentYOffset)
-		}
+	// Calculate available height for scrolling (reserve space for header)
+	headerHeight := strings.Count(headerContent, "\n") + 1
+	availableHeight = panelHeight - headerHeight
+	if availableHeight < 3 {
+		availableHeight = 3 // Minimum scrollable area
+	}
 
-		// Always include header, make Goals/Cards/Statistics scrollable
-		viewportContent := detailsViewport.View()
-		if viewportContent == "" {
-			// Debug: if viewport is empty, show the raw content
-			viewportContent = scrollableContent
+	// Apply manual scroll offset when focused, otherwise show beginning of content
+	visibleLines := scrollableLines
+	if rightPanelFocused && len(scrollableLines) > availableHeight {
+		// Show only visible portion based on scroll offset
+		start := scrollOffset
+		end := start + availableHeight
+		if end > len(scrollableLines) {
+			end = len(scrollableLines)
 		}
-		rightPanel = lipgloss.JoinVertical(lipgloss.Left, headerContent, viewportContent)
+		if start < len(scrollableLines) && start >= 0 {
+			visibleLines = scrollableLines[start:end]
+		} else if start >= len(scrollableLines) {
+			visibleLines = []string{}
+		}
+		// When focused, ensure we have enough lines to fill the available height
+		for len(visibleLines) < availableHeight && len(visibleLines) < len(scrollableLines) {
+			visibleLines = append(visibleLines, "")
+		}
 	} else {
-		// Fallback: combine both parts if no viewport
-		if rightPanelFocused {
-			rightPanel = scrollableContent
-		} else {
-			rightPanel = lipgloss.JoinVertical(lipgloss.Left, headerContent, scrollableContent)
+		// When not focused, show the beginning of content (same as scroll offset 0)
+		// This ensures consistent display when toggling focus
+		if len(scrollableLines) > availableHeight {
+			visibleLines = scrollableLines[:availableHeight]
+		}
+		// Reset scroll offset when not focused to maintain consistency
+		if scrollOffset != 0 {
+			// Note: This is just for display consistency, the actual offset reset happens in the tab handler
 		}
 	}
+
+	// Combine visible lines back into content
+	visibleContent := strings.Join(visibleLines, "\n")
+
+	// Always include header
+	rightPanel = lipgloss.JoinVertical(lipgloss.Left, headerContent, visibleContent)
 
 	// Apply panel styling based on focus state (only top/bottom borders for right panel)
 	if rightPanelFocused {
@@ -491,7 +495,7 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, details
 			BorderForeground(neonCyan).
 			Padding(0, 1).
 			Width(rightWidth).
-			Height(panelHeight).
+			MaxHeight(panelHeight).
 			Render(rightPanel)
 	} else {
 		// Unfocused right panel - dim top/bottom borders
@@ -501,7 +505,7 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, details
 			BorderForeground(neonDim).
 			Padding(0, 1).
 			Width(rightWidth).
-			Height(panelHeight).
+			MaxHeight(panelHeight).
 			Render(rightPanel)
 	}
 

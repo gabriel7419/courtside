@@ -47,6 +47,7 @@ func (m model) View() string {
 			m.getStatusBannerType(),
 			&m.statsDetailsViewport,
 			m.statsRightPanelFocused,
+			m.statsScrollOffset,
 		)
 
 	case viewSettings:
