@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Stoppage Time Display** - Goals in stoppage time now display properly (e.g., "45+2'")
+- **More Leagues Supported** - Added Gaucho Brasilian competition and multiple Portuguese leagues and competitions (Thanks @felipeolibon and @rmscoelho!)
 
 ### Changed
 
