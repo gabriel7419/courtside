@@ -49,7 +49,7 @@ brew install 0xjuanma/tap/golazo
 brew upgrade 0xjuanma/tap/golazo
 ```
 
-### Install/update script
+### Install script
 
 **macOS / Linux:**
 ```bash
