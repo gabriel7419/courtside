@@ -26,7 +26,8 @@ Golazo was created for those moments when you can't stream or watch matches live
 
 - **Live Match Tracking**: Timeline & Real-time updates for goals, cards, and substitutions with automatic polling
 - **Match Statistics**: Detailed stats including possession, shots, and passes
-- **Official Highlights, Goal Notifications & Replay Links**:  Desktop notifications & clickable links for goal replays and official highlights
+- **Official Highlights & Replay Links**: Clickable links for official highlights and instant goal replays
+- **Goal Notifications**: Desktop notifications for goals as they happen
 - **Finished Matches**: View results from today, last 3 days, or last 5 days
 - **50+ Leagues**: Support for major leagues across Europe, Americas, Asia, and more. Select your favorite leagues in Settings
 
@@ -57,7 +58,7 @@ curl -fsSL https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/instal
 ```
 
 **Windows (PowerShell):**
-```powershellq
+```powershell
 irm https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.ps1 | iex
 ```
 
@@ -77,10 +78,12 @@ Run the application:
 golazo
 ```
 
+**Navigation:** `↑`/`↓` or `j`/`k` to move, `Enter` to select, `/` to filter, `Esc` to go back, `q` to quit.
+
 ## Docs
 
-- [Supported Leagues](docs/SUPPORTED_LEAGUES.md) - Full list of available leagues and competitions, customize your preferences in the **Settings** menu.
-- [Notifications](docs/NOTIFICATIONS.md) - Desktop notification setup and configuration
+- [Supported Leagues](docs/SUPPORTED_LEAGUES.md): Full list of available leagues and competitions, customize your preferences in the **Settings** menu.
+- [Notifications](docs/NOTIFICATIONS.md): Desktop notification setup and configuration
 
 ---
 
