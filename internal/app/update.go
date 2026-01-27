@@ -479,6 +479,10 @@ func (m model) handleStatsSelection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				)
 			}
 			return m, nil
+		case "x":
+			// Open full statistics dialog
+			m.openStatisticsDialog()
+			return m, nil
 		}
 	}
 
@@ -1351,4 +1355,33 @@ func (m model) handleStandings(msg standingsMsg) (tea.Model, tea.Cmd) {
 	m.dialogOverlay.OpenDialog(dialog)
 
 	return m, nil
+}
+
+// openStatisticsDialog opens the full statistics dialog for the current match.
+func (m *model) openStatisticsDialog() {
+	if m.matchDetails == nil || m.dialogOverlay == nil {
+		return
+	}
+
+	// Skip if no statistics available
+	if len(m.matchDetails.Statistics) == 0 {
+		return
+	}
+
+	// Get team names
+	homeTeam := m.matchDetails.HomeTeam.ShortName
+	if homeTeam == "" {
+		homeTeam = m.matchDetails.HomeTeam.Name
+	}
+	awayTeam := m.matchDetails.AwayTeam.ShortName
+	if awayTeam == "" {
+		awayTeam = m.matchDetails.AwayTeam.Name
+	}
+
+	dialog := ui.NewStatisticsDialog(
+		homeTeam,
+		awayTeam,
+		m.matchDetails.Statistics,
+	)
+	m.dialogOverlay.OpenDialog(dialog)
 }
