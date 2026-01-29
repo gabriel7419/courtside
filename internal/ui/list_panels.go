@@ -56,7 +56,7 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model, upcomin
 	if len(upcomingMatches) > 0 {
 		maxUpcomingHeight := innerHeight / 2
 
-		upcomingTitle := neonHeaderStyle.Render("Upcoming")
+		upcomingTitle := neonHeaderStyle.Render(constants.PanelUpcomingMatches)
 
 		var upcomingLines []string
 		upcomingLines = append(upcomingLines, upcomingTitle)
@@ -134,9 +134,15 @@ func RenderStatsListPanel(width, height int, finishedList list.Model, dateRange 
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(neonDim).
 			MarginBottom(0).
-			Render("Match List")
+			Render(constants.PanelMatchList)
 	} else {
-		header = neonHeaderStyle.Render("Match List")
+		header = neonHeaderStyle.
+			PaddingBottom(0).
+			BorderBottom(true).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(neonDim).
+			MarginBottom(0).
+			Render(constants.PanelMatchList)
 	}
 
 	dateSelector := renderDateRangeSelector(width-6, dateRange)

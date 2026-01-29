@@ -56,7 +56,7 @@ func RenderMatchDetails(cfg MatchDetailsConfig) (headerContent, scrollableConten
 	}
 
 	// Header with optional focus styling
-	headerLines = append(headerLines, renderPanelHeader("Match Details", cfg.Focused))
+	headerLines = append(headerLines, renderPanelHeader(constants.PanelMatchDetails, cfg.Focused))
 	headerLines = append(headerLines, "")
 
 	// Status and league info

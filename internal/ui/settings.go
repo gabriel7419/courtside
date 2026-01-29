@@ -232,7 +232,7 @@ func RenderSettingsView(width, height int, state *SettingsState, bannerType cons
 
 	// Title - red like other panel titles
 	titleStyle := neonPanelTitleStyle.Width(settingsBoxWidth)
-	title := titleStyle.Render("League Preferences")
+	title := titleStyle.Render(constants.PanelLeaguePreferences)
 
 	// Render the tab bar
 	tabs := renderTabBar(state.Regions, state.CurrentRegion, settingsBoxWidth)
