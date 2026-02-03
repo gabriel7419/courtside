@@ -90,6 +90,7 @@ var AllSupportedLeagues = map[string][]LeagueInfo{
 		{ID: 9490, Name: "Copa Colombia", Country: "Colombia"},
 		{ID: 45, Name: "Copa Libertadores", Country: "South America"},
 		{ID: 299, Name: "Copa Sudamericana", Country: "South America"},
+		{ID: 491, Name: "Recopa Sudamericana", Country: "South America"},
 		{ID: 112, Name: "Liga Profesional", Country: "Argentina"},
 		{ID: 274, Name: "Primera A", Country: "Colombia"},
 		{ID: 9125, Name: "Primera B", Country: "Colombia"},

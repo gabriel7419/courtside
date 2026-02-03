@@ -89,6 +89,7 @@ Golazo supports **60+ leagues and competitions**. Customize your selection in Se
 | 🏆 | Copa America |
 | 🏆 | Copa Libertadores |
 | 🏆 | Copa Sudamericana |
+| 🏆 | Recopa Sudamericana |
 
 ## North America
 
