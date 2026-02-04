@@ -31,6 +31,7 @@ var AllSupportedLeagues = map[string][]LeagueInfo{
 		{ID: 47, Name: "Premier League", Country: "England"},
 		{ID: 87, Name: "La Liga", Country: "Spain"},
 		{ID: 54, Name: "Bundesliga", Country: "Germany"},
+		{ID: 512, Name: "Regionalliga", Country: "Germany"},
 		{ID: 55, Name: "Serie A", Country: "Italy"},
 		{ID: 53, Name: "Ligue 1", Country: "France"},
 		// Top 5 Women's Leagues
@@ -57,6 +58,9 @@ var AllSupportedLeagues = map[string][]LeagueInfo{
 		{ID: 64, Name: "Scottish Premiership", Country: "Scotland"},
 		{ID: 135, Name: "Super League 1", Country: "Greece"},
 		{ID: 46, Name: "Superligaen", Country: "Denmark"},
+		{ID: 85, Name: "1. Division", Country: "Denmark"},
+		{ID: 59, Name: "Eliteserien", Country: "Norway"},
+		{ID: 203, Name: "1. Divisjon", Country: "Norway"},
 		{ID: 71, Name: "Süper Lig", Country: "Turkey"},
 		{ID: 69, Name: "Swiss Super League", Country: "Switzerland"},
 		{ID: 63, Name: "Russian Premier League", Country: "Russia"},

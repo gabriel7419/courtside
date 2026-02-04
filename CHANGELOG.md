@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Brazilian Leagues & Competitions** - Added support for Copa do Brasil, Supercopa do Brasil, Campeonato Carioca, Campeonato Mineiro, Campeonato Paulista, and Recopa Sudamericana (Thanks @rafaelrc7!)
+- **Nordic Leagues** - Added support for Eliteserien and 1. Divisjon (Norway), and 1. Division (Denmark)
+- **German League** - Added support for Regionalliga
 
 ### Changed
 
