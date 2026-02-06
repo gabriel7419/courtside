@@ -77,49 +77,67 @@ var rootCmd = &cobra.Command{
 func runUpdate() {
 	installMethod := detectInstallationMethod()
 
-	var cmd *exec.Cmd
-
 	switch installMethod {
 	case "homebrew":
-		fmt.Println("Detected Homebrew installation. Updating via brew...")
-		cmd = exec.Command("brew", "upgrade", "0xjuanma/tap/golazo")
+		fmt.Println("Updating via Homebrew...")
+		if err := runBrewUpdate(); err != nil {
+			fmt.Fprintf(os.Stderr, "Homebrew update failed: %v\n", err)
+			fmt.Println("Falling back to install script...")
+			if err := runScriptUpdate(); err != nil {
+				fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
+				os.Exit(1)
+			}
+		}
 	default: // "script"
 		fmt.Println("Updating via install script...")
-		if runtime.GOOS == "windows" {
-			cmd = exec.Command("powershell", "-Command", "irm https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.ps1 | iex")
-		} else {
-			cmd = exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.sh | bash")
+		if err := runScriptUpdate(); err != nil {
+			fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
+			os.Exit(1)
 		}
 	}
+}
 
+// runBrewUpdate attempts to update golazo via Homebrew.
+func runBrewUpdate() error {
+	cmd := exec.Command("brew", "upgrade", "0xjuanma/tap/golazo")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
+	return cmd.Run()
+}
 
-	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
-		os.Exit(1)
+// runScriptUpdate updates golazo via the install script.
+func runScriptUpdate() error {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("powershell", "-Command", "irm https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.ps1 | iex")
+	} else {
+		cmd = exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.sh | bash")
 	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
 }
 
 // detectInstallationMethod returns "homebrew" or "script" based on how golazo was installed.
 func detectInstallationMethod() string {
-	// 1. Check if binary is a Homebrew symlink
-	if isHomebrewInstall() {
+	// 1. Fast path: check if binary is in Homebrew Cellar
+	if isBinaryInCellar() {
 		return "homebrew"
 	}
 
-	// 2. Check if brew knows about the package
-	if isBrewPackageInstalled() {
+	// 2. Fallback: ask brew directly if package is installed
+	if isListedInBrew() {
 		return "homebrew"
 	}
 
-	// 3. Default to script
+	// 3. Default to script installation
 	return "script"
 }
 
-// isHomebrewInstall checks if binary is in Homebrew Cellar.
-func isHomebrewInstall() bool {
+// isBinaryInCellar checks if the golazo binary is located in Homebrew's Cellar directory.
+func isBinaryInCellar() bool {
 	execPath, err := os.Executable()
 	if err != nil {
 		return false
@@ -130,15 +148,17 @@ func isHomebrewInstall() bool {
 		return false
 	}
 
-	// Check if resolved path contains Homebrew Cellar (macOS or Linux)
 	return strings.Contains(realPath, "/Cellar/golazo/")
 }
 
-// isBrewPackageInstalled checks if brew knows about golazo.
-func isBrewPackageInstalled() bool {
-	cmd := exec.Command("brew", "--prefix", "golazo")
-	err := cmd.Run()
-	return err == nil
+// isListedInBrew checks if golazo appears in brew's installed package list.
+func isListedInBrew() bool {
+	if _, err := exec.LookPath("brew"); err != nil {
+		return false
+	}
+
+	cmd := exec.Command("brew", "list", "golazo")
+	return cmd.Run() == nil
 }
 
 // Execute runs the root command.
