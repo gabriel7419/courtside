@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Update Command** - Fixed detection logic failing to distinguish between Homebrew and script installations, now with automatic fallback if Homebrew update fails
 
 ## [0.19.0] - 2026-02-03
 
