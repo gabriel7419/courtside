@@ -148,5 +148,6 @@ Golazo supports **65+ leagues and competitions**. Customize your selection in Se
 | ⚽ | Club Friendlies |
 | 🏆 | FIFA Club World Cup |
 | 🌍 | FIFA World Cup |
+| 🏆 | Finalissima |
 | 🏆 | UEFA Nations League |
 | 🌍 | Women's FIFA World Cup |

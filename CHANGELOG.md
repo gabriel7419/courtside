@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Italian Serie B** - Added support for Italian Serie B (second division)
+- **Finalissima** - Added support for CONMEBOL-UEFA Cup of Champions
 
 ### Changed
 

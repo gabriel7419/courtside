@@ -135,6 +135,7 @@ var AllSupportedLeagues = map[string][]LeagueInfo{
 		{ID: 76, Name: "Women's FIFA World Cup", Country: "International"},
 		{ID: 78, Name: "FIFA Club World Cup", Country: "International"},
 		{ID: 9806, Name: "UEFA Nations League", Country: "International"},
+		{ID: 10304, Name: "Finalissima", Country: "International"},
 		{ID: 489, Name: "Club Friendlies", Country: "International"},
 		{ID: 114, Name: "International Friendlies", Country: "International"},
 	},
