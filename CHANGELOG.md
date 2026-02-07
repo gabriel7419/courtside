@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Brazilian Leagues** - Added support for Copa do Nordeste and Campeonato Goiano (Thanks @gabriel7419!)
 
 ### Changed
 
