@@ -22,12 +22,6 @@ var (
 				Padding(0, 2).
 				MarginBottom(1)
 
-	// dialogTitleStyle styles plain dialog titles (fallback).
-	dialogTitleStyle = lipgloss.NewStyle().
-				Foreground(neonRed).
-				Bold(true).
-				MarginBottom(1)
-
 	// dialogContentStyle styles the main dialog content.
 	dialogContentStyle = lipgloss.NewStyle().
 				Foreground(neonWhite)
@@ -39,11 +33,6 @@ var (
 	// dialogHeaderStyle styles column headers in tables.
 	dialogHeaderStyle = lipgloss.NewStyle().
 				Foreground(neonCyan).
-				Bold(true)
-
-	// dialogHighlightStyle highlights important rows (e.g., current teams).
-	dialogHighlightStyle = lipgloss.NewStyle().
-				Foreground(neonRed).
 				Bold(true)
 
 	// dialogValueStyle styles numeric values.
@@ -59,12 +48,6 @@ var (
 	dialogTeamStyle = lipgloss.NewStyle().
 			Foreground(neonCyan).
 			Bold(true)
-
-	// dialogPositionStyle styles position indicators.
-	dialogPositionStyle = lipgloss.NewStyle().
-				Foreground(neonWhite).
-				Width(3).
-				Align(lipgloss.Right)
 
 	// dialogSeparatorStyle styles horizontal separators.
 	dialogSeparatorStyle = lipgloss.NewStyle().

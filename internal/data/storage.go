@@ -181,7 +181,7 @@ func CheckLatestVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("fetch latest release: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// GitHub redirects to: https://github.com/0xjuanma/golazo/releases/tag/v1.2.3
 	// Extract version from the final URL

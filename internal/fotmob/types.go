@@ -334,8 +334,8 @@ func (m fotmobMatchDetails) toAPIMatchDetails() *api.MatchDetails {
 	if len(m.Header.Teams) >= 2 {
 		homeScore := m.Header.Teams[0].Score
 		awayScore := m.Header.Teams[1].Score
-		details.Match.HomeScore = &homeScore
-		details.Match.AwayScore = &awayScore
+		details.HomeScore = &homeScore
+		details.AwayScore = &awayScore
 
 		// Determine winner for finished matches
 		if status == api.MatchStatusFinished {
@@ -682,7 +682,7 @@ func convertNewLineupPlayers(players []fotmobNewPlayerInfo) []api.PlayerInfo {
 	result := make([]api.PlayerInfo, 0, len(players))
 	for _, p := range players {
 		var number int
-		fmt.Sscanf(p.ShirtNumber, "%d", &number)
+		_, _ = fmt.Sscanf(p.ShirtNumber, "%d", &number)
 
 		player := api.PlayerInfo{
 			ID:     p.ID,
@@ -717,7 +717,7 @@ type fotmobTableRow struct {
 func (r fotmobTableRow) toAPITableEntry() api.LeagueTableEntry {
 	// Parse goals from scoresStr (e.g., "42-17")
 	var goalsFor, goalsAgainst int
-	fmt.Sscanf(r.ScoresStr, "%d-%d", &goalsFor, &goalsAgainst)
+	_, _ = fmt.Sscanf(r.ScoresStr, "%d-%d", &goalsFor, &goalsAgainst)
 
 	return api.LeagueTableEntry{
 		Position: r.Idx,
@@ -735,22 +735,6 @@ func (r fotmobTableRow) toAPITableEntry() api.LeagueTableEntry {
 		GoalDifference: r.GoalConDiff,
 		Points:         r.Pts,
 	}
-}
-
-// Helper function to parse time from various formats
-func parseTime(timeStr string) *time.Time {
-	formats := []string{
-		time.RFC3339,
-		"2006-01-02T15:04:05Z",
-		"2006-01-02 15:04:05",
-	}
-
-	for _, format := range formats {
-		if t, err := time.Parse(format, timeStr); err == nil {
-			return &t
-		}
-	}
-	return nil
 }
 
 // Helper function to parse int from string

@@ -195,8 +195,8 @@ func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable 
 				logFile := filepath.Join(configDir, "golazo_debug.log")
 				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err == nil {
-					defer f.Close()
-					fmt.Fprintf(f, "%s %s\n", time.Now().Format("2006-01-02 15:04:05"), message)
+					defer func() { _ = f.Close() }()
+					_, _ = fmt.Fprintf(f, "%s %s\n", time.Now().Format("2006-01-02 15:04:05"), message)
 				}
 			}
 		})

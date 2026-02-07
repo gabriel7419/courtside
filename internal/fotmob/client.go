@@ -154,7 +154,7 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 					// Skip this league on request error - best effort aggregation
 					return
 				}
-				defer resp.Body.Close()
+				defer func() { _ = resp.Body.Close() }()
 
 				var leagueResponse struct {
 					Details struct {
@@ -229,7 +229,7 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 	c.cache.SetMatches(requestDateStr, allMatches)
 
 	// Persist empty results cache to disk (async, best-effort)
-	go c.SaveEmptyCache()
+	go func() { _ = c.SaveEmptyCache() }()
 
 	return allMatches, nil
 }
@@ -255,7 +255,7 @@ func (c *Client) MatchesForLeagueAndDate(ctx context.Context, leagueID int, date
 	if err != nil {
 		return nil, fmt.Errorf("fetch league %d: %w", leagueID, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var leagueResponse struct {
 		Details struct {
@@ -327,7 +327,7 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 	if err != nil {
 		return nil, fmt.Errorf("fetch match details for match %d: %w", matchID, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code %d for match %d", resp.StatusCode, matchID)
@@ -485,7 +485,7 @@ func (c *Client) fetchLeagueTable(ctx context.Context, leagueID int) ([]api.Leag
 	if err != nil {
 		return nil, fmt.Errorf("fetch league table for league %d: %w", leagueID, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code %d for league %d table", resp.StatusCode, leagueID)

@@ -38,7 +38,7 @@ func FetchLeagueData(ctx context.Context, leagueID int, date time.Time, tab stri
 	if err != nil {
 		return nil, nil, fmt.Errorf("http request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
@@ -78,7 +78,7 @@ func FetchMatchDetails(ctx context.Context, matchID int) (map[string]any, *api.M
 	if err != nil {
 		return nil, nil, fmt.Errorf("http request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)

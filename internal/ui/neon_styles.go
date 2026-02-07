@@ -24,7 +24,6 @@ var (
 	neonWhite = lipgloss.AdaptiveColor{Light: "235", Dark: "255"} // Adaptive text color
 	// Adaptive white alt - slightly different shades for variety
 	neonWhiteAlt = lipgloss.AdaptiveColor{Light: "236", Dark: "15"} // Standard adaptive text
-	neonBlack    = lipgloss.Color("0")                              // Black
 
 	// Gray scale - adaptive for light/dark terminals
 	neonDark    = lipgloss.AdaptiveColor{Light: "252", Dark: "236"} // Light gray / Dark background
@@ -47,40 +46,14 @@ var (
 	neonPanelCyanStyle = lipgloss.NewStyle().
 				Padding(0, 1)
 
-	// Neon panel title style - red accent
-	neonPanelTitleStyle = lipgloss.NewStyle().
-				Foreground(neonRed).
-				Bold(true).
-				PaddingBottom(0).
-				BorderBottom(true).
-				BorderStyle(lipgloss.NormalBorder()).
-				BorderForeground(neonDarkDim).
-				MarginBottom(0)
-
-	// Neon section style - cyan borders for inner sections
-	neonSectionStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(neonCyan).
-				Padding(0, 1)
-
 	// Neon header style - cyan
 	neonHeaderStyle = lipgloss.NewStyle().
 			Foreground(neonCyan).
 			Bold(true)
 
-	// Neon subtitle style - cyan italic
-	neonSubtitleStyle = lipgloss.NewStyle().
-				Foreground(neonCyan).
-				Italic(true)
-
 	// Neon team style - cyan for team names
 	neonTeamStyle = lipgloss.NewStyle().
 			Foreground(neonCyan).
-			Bold(true)
-
-	// Neon score style - red for emphasis
-	neonScoreStyle = lipgloss.NewStyle().
-			Foreground(neonRed).
 			Bold(true)
 
 	// Neon value style - white text
@@ -95,24 +68,6 @@ var (
 	neonLabelStyle = lipgloss.NewStyle().
 			Foreground(neonDim).
 			Width(14)
-
-	// Neon list item styles
-	neonListItemStyle = lipgloss.NewStyle().
-				Foreground(neonWhite).
-				Padding(0, 1)
-
-	neonListItemSelectedStyle = lipgloss.NewStyle().
-					Foreground(neonRed).
-					Bold(true).
-					Padding(0, 1)
-
-	// Neon status styles
-	neonLiveStyle = lipgloss.NewStyle().
-			Foreground(neonRed).
-			Bold(true)
-
-	neonFinishedStyle = lipgloss.NewStyle().
-				Foreground(neonCyan)
 
 	// Neon separator style
 	neonSeparatorStyle = lipgloss.NewStyle().

@@ -1203,11 +1203,11 @@ func (m model) debugLog(message string) {
 	if err != nil {
 		return // Silently fail if we can't open log file
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	logLine := fmt.Sprintf("[%s] %s\n", timestamp, message)
-	f.WriteString(logLine)
+	_, _ = f.WriteString(logLine)
 }
 
 // rotateDebugLogIfNeeded rotates the debug log file when it exceeds size limits
@@ -1280,7 +1280,7 @@ func (m model) cleanupOldRotatedLogs(logFile string, maxFiles int) {
 
 	// Remove files beyond maxFiles
 	for i := maxFiles; i < len(files); i++ {
-		os.Remove(files[i].path)
+		_ = os.Remove(files[i].path)
 	}
 }
 
@@ -1352,7 +1352,7 @@ func (m model) handleStandings(msg standingsMsg) (tea.Model, tea.Cmd) {
 	m.debugLog(fmt.Sprintf("handleStandings: received msg with %d standings, leagueID=%d, leagueName=%s",
 		len(msg.standings), msg.leagueID, msg.leagueName))
 
-	if msg.standings == nil || len(msg.standings) == 0 {
+	if len(msg.standings) == 0 {
 		m.debugLog("handleStandings: no standings data, skipping dialog")
 		return m, nil
 	}

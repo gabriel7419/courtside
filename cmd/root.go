@@ -60,7 +60,7 @@ var rootCmd = &cobra.Command{
 
 			if shouldCheck {
 				if fetchedVersion, err := data.CheckLatestVersion(); err == nil {
-					data.SaveLatestVersion(fetchedVersion)
+					_ = data.SaveLatestVersion(fetchedVersion)
 				}
 			}
 		}()

@@ -6,8 +6,6 @@ var (
 	// Primary colors
 	textColor      = neonWhiteAlt // Standard white
 	accentColor    = neonCyan     // Bright cyan
-	secondaryColor = neonRed      // Bright red
 	dimColor       = neonDim      // Gray
 	highlightColor = neonCyan     // Cyan highlight (same as accent)
-	borderColor    = neonCyan     // Cyan borders (same as accent)
 )

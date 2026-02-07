@@ -194,7 +194,7 @@ func (d *FormationsDialog) renderRating(rating string, focused bool) string {
 
 	// Parse rating to determine color
 	var val float64
-	fmt.Sscanf(rating, "%f", &val)
+	_, _ = fmt.Sscanf(rating, "%f", &val)
 
 	if val >= 8.0 {
 		// Exceptional rating - bold red

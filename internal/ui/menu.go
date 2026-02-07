@@ -25,12 +25,6 @@ var (
 				Bold(true).
 				Padding(0, 0)
 
-	menuTitleStyle = lipgloss.NewStyle().
-			Foreground(accentColor).
-			Bold(true).
-			Align(lipgloss.Center).
-			Padding(0, 0)
-
 	menuHelpStyle = lipgloss.NewStyle().
 			Foreground(dimColor).
 			Align(lipgloss.Center).

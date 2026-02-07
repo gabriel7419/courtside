@@ -85,29 +85,6 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleLiveMatchesKeys processes keyboard input for the live matches view.
-// Handles navigation between matches and loading match details on selection.
-// Note: Currently unused as list component handles navigation directly.
-func (m model) handleLiveMatchesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "j", "down":
-		if m.selected < len(m.matches)-1 {
-			m.selected++
-			if m.selected < len(m.matches) {
-				return m.loadMatchDetails(m.matches[m.selected].ID)
-			}
-		}
-	case "k", "up":
-		if m.selected > 0 {
-			m.selected--
-			if m.selected >= 0 && m.selected < len(m.matches) {
-				return m.loadMatchDetails(m.matches[m.selected].ID)
-			}
-		}
-	}
-	return m, nil
-}
-
 // handleStatsViewKeys processes keyboard input for the stats view.
 // Handles date range navigation (left/right) to change the time period.
 // Uses client-side filtering from cached data - no new API calls needed!

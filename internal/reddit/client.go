@@ -53,11 +53,6 @@ func (r *rateLimiter) wait() {
 	r.lastRequest = time.Now()
 }
 
-// Simple user agent exactly like main branch
-var userAgents = []string{
-	"golazo:v1.0.0 (by /u/golazo_app)",
-}
-
 // NewPublicJSONFetcher creates a new fetcher using public Reddit JSON API.
 func NewPublicJSONFetcher() *PublicJSONFetcher {
 	return &PublicJSONFetcher{
@@ -100,7 +95,7 @@ func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time)
 	if err != nil {
 		return nil, fmt.Errorf("fetch from reddit: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -281,6 +276,7 @@ func (c *Client) searchForGoal(goal GoalInfo) (*GoalLink, error) {
 	maxRetries := 2               // Reduced from 3
 	baseDelay := 60 * time.Second // Increased delay between retries
 
+	var lastErr error
 	for attempt := range maxRetries {
 		if attempt > 0 {
 			// Exponential backoff: 30s, 60s, 120s
@@ -293,6 +289,8 @@ func (c *Client) searchForGoal(goal GoalInfo) (*GoalLink, error) {
 			return result, nil
 		}
 
+		lastErr = err
+
 		// Check if this is a CAPTCHA/rate limit error
 		if strings.Contains(err.Error(), "CAPTCHA") ||
 			strings.Contains(err.Error(), "blocking requests") ||
@@ -303,10 +301,12 @@ func (c *Client) searchForGoal(goal GoalInfo) (*GoalLink, error) {
 			return nil, err
 		}
 
-		// For other errors or if we've exhausted retries, return the error
-		return nil, err
+		// For other errors, retry on next attempt
 	}
 
+	if lastErr != nil {
+		return nil, lastErr
+	}
 	return nil, nil // No match found after all retries
 }
 
