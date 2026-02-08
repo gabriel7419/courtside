@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Stats View Focus** - Fixed focus state persisting when navigating away from stats view, ensuring fresh state on re-entry
+- **Standings for Multi-Season Leagues** - Fixed standings dialog returning empty results for leagues with multiple seasons per year (i.e, Liga MX, Liga Profesional, Liga 1, Primera A, etc.)
 
 ## [0.20.0] - 2026-02-05
 
