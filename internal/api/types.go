@@ -4,11 +4,12 @@ import "time"
 
 // League represents a football league
 type League struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Country     string `json:"country"`
-	CountryCode string `json:"country_code"`
-	Logo        string `json:"logo,omitempty"`
+	ID             int    `json:"id"`
+	Name           string `json:"name"`
+	Country        string `json:"country"`
+	CountryCode    string `json:"country_code"`
+	Logo           string `json:"logo,omitempty"`
+	ParentLeagueID int    `json:"parent_league_id,omitempty"` // Parent league ID for sub-season leagues (e.g., Liga MX Clausura -> Liga MX)
 }
 
 // Team represents a football team
