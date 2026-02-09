@@ -2,7 +2,7 @@
 pkgs.buildGoModule {
   pname = "golazo";
   version = "0.21.0";
-  vendorHash = "sha256-hPrWqDmsCjAnstKIV8W5tqCR4i6uRpnFIZWMr4OKEUo=";
+  vendorHash = "sha256-M2gfqU5rOfuiVSZnH/Dr8OVmDhyU2jYkgW7RuIUTd+E=";
 
   subPackages = ["."];
 
