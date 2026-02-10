@@ -164,9 +164,16 @@ func (d *StatisticsDialog) renderStatRow(stat api.MatchStatistic, width int) str
 	barWidth := 16
 	homeBarWidth, awayBarWidth := calculateBarWidths(homeVal, awayVal, barWidth)
 
+	barColor := neonCyan
+	if homeVal == awayVal {
+		barColor = neonWhite
+	}
 	// Render solid color bars (cyan for home, gray for away)
-	homeBar := strings.Repeat("█", homeBarWidth) + strings.Repeat("░", barWidth-homeBarWidth)
-	awayBar := strings.Repeat("█", awayBarWidth) + strings.Repeat("░", barWidth-awayBarWidth)
+	homeBar :=  lipgloss.NewStyle().Foreground(neonGray).Render(strings.Repeat("░", barWidth-homeBarWidth)) +
+				lipgloss.NewStyle().Foreground(barColor).Render(strings.Repeat("█", homeBarWidth))
+
+	awayBar := 	lipgloss.NewStyle().Foreground(barColor).Render(strings.Repeat("█", awayBarWidth)) +
+				lipgloss.NewStyle().Foreground(neonGray).Render(strings.Repeat("░", barWidth-awayBarWidth))
 
 	homeBarStyled := lipgloss.NewStyle().Foreground(neonCyan).Render(homeBar)
 	awayBarStyled := lipgloss.NewStyle().Foreground(neonGray).Render(awayBar)
