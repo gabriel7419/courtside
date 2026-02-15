@@ -324,27 +324,21 @@ func renderSubstitutionsSection(cfg MatchDetailsConfig, contentWidth int) string
 		return ""
 	}
 
-	dimStyle := lipgloss.NewStyle().Foreground(neonDim)
-	outStyle := lipgloss.NewStyle().Foreground(neonRed)
-	inStyle := lipgloss.NewStyle().Foreground(neonCyan)
-
 	var lines []string
 	lines = append(lines, "")
 	lines = append(lines, neonHeaderStyle.Render("Substitutions"))
 
 	for _, sub := range subs {
-		playerOut := "Unknown"
+		playerOut := ""
 		if sub.Player != nil {
 			playerOut = *sub.Player
 		}
-		playerIn := "Unknown"
+		playerIn := ""
 		if sub.Assist != nil {
 			playerIn = *sub.Assist
 		}
 		isHome := sub.Team.ID == details.HomeTeam.ID
-
-		playerDetails := inStyle.Render("←"+playerIn) + " " + outStyle.Render("→"+playerOut)
-		subContent := buildEventContent(playerDetails, "", "↔", dimStyle.Render("SUB"), isHome)
+		subContent := buildSubstitutionContent(playerIn, playerOut, isHome)
 
 		minuteStr := sub.DisplayMinute
 		if minuteStr == "" {
