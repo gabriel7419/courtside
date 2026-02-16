@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Ligue 2** - Added support for French Ligue 2 (Thanks @hkajdan!)
+- **Substitutions in Finished View** - Finished match details now show a "Substitutions" section (after Goals and Cards) with the same styling as the live view (player in/out, minute)
 
 ### Changed
+- **Substitution Rendering** - Live and finished views now share a single substitution content builder (`buildSubstitutionContent`) so behaviour and styling stay consistent
 
 ### Fixed
+- **Half-Time Score** - Fixed HT score being overwritten with the final score when a match finishes
 
 ## [0.21.0] - 2026-02-07
 

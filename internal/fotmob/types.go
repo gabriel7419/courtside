@@ -383,18 +383,14 @@ func (m fotmobMatchDetails) toAPIMatchDetails() *api.MatchDetails {
 	// Also set match duration (default to 90, but can be 120 for extra time)
 	details.MatchDuration = 90
 	for _, e := range m.Content.MatchFacts.Events.Events {
-		if e.Type == "Half" && (e.HomeScore > 0 || e.AwayScore > 0) {
-			// Found half-time score
-			if details.HalfTimeScore == nil {
-				details.HalfTimeScore = &struct {
-					Home *int `json:"home,omitempty"`
-					Away *int `json:"away,omitempty"`
-				}{}
-			}
+		if e.Type == "Half" && details.HalfTimeScore == nil {
+			// Found half-time score (first "Half" event only — subsequent ones carry the final score)
 			htHome := e.HomeScore
 			htAway := e.AwayScore
-			details.HalfTimeScore.Home = &htHome
-			details.HalfTimeScore.Away = &htAway
+			details.HalfTimeScore = &struct {
+				Home *int `json:"home,omitempty"`
+				Away *int `json:"away,omitempty"`
+			}{Home: &htHome, Away: &htAway}
 		}
 		// Check for extra time indicators (events after 90 minutes)
 		if e.Time > 90 {

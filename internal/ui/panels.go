@@ -187,11 +187,10 @@ func renderStyledLiveUpdate(update string, contentWidth int, details *api.MatchD
 	case "●": // Goal - gradient
 		// Check for own goal marker in the update string
 		label := "GOAL"
-		marker := "[GOAL]"
 		if strings.Contains(contentWithoutMinute, "[OWN GOAL]") {
 			label = "OWN GOAL"
-			marker = "[OWN GOAL]"
 		}
+		marker := fmt.Sprintf("[%s]", label)
 		playerDetails, _ := extractPlayerAndType(contentWithoutMinute, marker)
 		styledType := design.ApplyGradientToText(label)
 		styledPlayer := whiteStyle.Render(playerDetails)
@@ -248,25 +247,34 @@ func extractPlayerAndType(content string, typeMarker string) (string, string) {
 	return strings.TrimSpace(after), typeMarker
 }
 
-// renderSubstitutionWithColorsNoMinute renders a substitution without the minute.
-func renderSubstitutionWithColorsNoMinute(update string, isHome bool) string {
+// buildSubstitutionContent returns the styled event content for a substitution (no minute).
+// Used by both the live view (from parsed update string) and the finished view (from api.MatchEvent).
+// playerIn = coming on, playerOut = going off; empty strings are shown as "Unknown".
+func buildSubstitutionContent(playerIn, playerOut string, isHome bool) string {
 	dimStyle := lipgloss.NewStyle().Foreground(neonDim)
 	outStyle := lipgloss.NewStyle().Foreground(neonRed)
 	inStyle := lipgloss.NewStyle().Foreground(neonCyan)
+	if playerIn == "" {
+		playerIn = "Unknown"
+	}
+	if playerOut == "" {
+		playerOut = "Unknown"
+	}
+	playerDetails := inStyle.Render("←"+playerIn) + " " + outStyle.Render("→"+playerOut)
+	return buildEventContent(playerDetails, "", "↔", dimStyle.Render("SUB"), isHome)
+}
 
+// renderSubstitutionWithColorsNoMinute renders a substitution from a live-update string (with {OUT}/{IN} markers).
+func renderSubstitutionWithColorsNoMinute(update string, isHome bool) string {
+	dimStyle := lipgloss.NewStyle().Foreground(neonDim)
 	outIdx := strings.Index(update, "{OUT}")
 	inIdx := strings.Index(update, "{IN}")
-
 	if outIdx == -1 || inIdx == -1 {
 		return dimStyle.Render(update)
 	}
-
 	playerOut := strings.TrimSpace(update[outIdx+5 : inIdx])
 	playerIn := strings.TrimSpace(update[inIdx+4:])
-
-	playerDetails := inStyle.Render("←"+playerIn) + " " + outStyle.Render("→"+playerOut)
-
-	return buildEventContent(playerDetails, "", "↔", dimStyle.Render("SUB"), isHome)
+	return buildSubstitutionContent(playerIn, playerOut, isHome)
 }
 
 // renderLargeScore renders the score in a large, prominent format using block digits.
