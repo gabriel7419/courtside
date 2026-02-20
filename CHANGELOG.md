@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.22.0] - 2026-02-20
+
+### Added
 - **Ligue 2** - Added support for French Ligue 2 (Thanks @hkajdan!)
 - **Add more German leagues** - Added support for German 2. Bundesliga and 3. Liga (Thanks @lukasgierth!)
 
