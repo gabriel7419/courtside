@@ -92,11 +92,6 @@ func (d *StatisticsDialog) renderContent(width int) string {
 	separator := dialogSeparatorStyle.Render(strings.Repeat("─", width))
 	lines = append(lines, separator)
 
-	//Render Goals at top always
-	goalsStat := createStatFromGoal(d.homeScore, d.awayScore)
-	goals := d.renderStatRow(goalsStat,width)
-	lines = append(lines,goals)
-
 	// Calculate visible range
 	endIdx := d.scrollIndex + d.maxVisible
 	endIdx = min(endIdx, len(d.statistics))
@@ -131,7 +126,10 @@ func (d *StatisticsDialog) renderTeamHeader(width int) string {
 		awayTeam = awayTeam[:maxLen-1] + "…"
 	}
 
-	headerText := fmt.Sprintf("%s  vs  %s", homeTeam, awayTeam)
+	homeStr := strconv.Itoa(d.homeScore)
+	awayStr := strconv.Itoa(d.awayScore)
+
+	headerText := fmt.Sprintf("%s %s - %s  %s", homeTeam, homeStr, awayStr, awayTeam)
 	return lipgloss.NewStyle().
 		Width(width).
 		Align(lipgloss.Center).
@@ -268,17 +266,4 @@ func parseStatNumber(s string) float64 {
 		return 0
 	}
 	return val
-}
-
-// create stat from goals returns a stat struct from goals value
-func createStatFromGoal(homeGoals, awayGoals int) api.MatchStatistic{
-	homeStr := strconv.Itoa(homeGoals)
-	awayStr := strconv.Itoa(awayGoals)
-
-	return api.MatchStatistic {
-		Key: "Goals",
-		Label: "Goals",
-		HomeValue: homeStr,
-		AwayValue: awayStr,
-	}
 }

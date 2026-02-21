@@ -70,7 +70,6 @@ func (c *Client) LiveMatchesForLeague(ctx context.Context, leagueID int) ([]api.
 			//Compare with local times
 			matchDate := match.MatchTime.Local().Format("2006-01-02")
 			if matchDate == dateStr && match.Status == api.MatchStatusLive {
-				fmt.Printf("live.Status is %s\n",match.Status)
 				liveMatches = append(liveMatches, match)
 			}
 		}
