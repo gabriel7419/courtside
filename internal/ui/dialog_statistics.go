@@ -126,10 +126,7 @@ func (d *StatisticsDialog) renderTeamHeader(width int) string {
 		awayTeam = awayTeam[:maxLen-1] + "…"
 	}
 
-	homeStr := strconv.Itoa(d.homeScore)
-	awayStr := strconv.Itoa(d.awayScore)
-
-	headerText := fmt.Sprintf("%s %s - %s  %s", homeTeam, homeStr, awayStr, awayTeam)
+	headerText := fmt.Sprintf("%s %d - %d  %s", homeTeam, d.homeScore , d.awayScore, awayTeam)
 	return lipgloss.NewStyle().
 		Width(width).
 		Align(lipgloss.Center).
