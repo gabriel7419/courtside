@@ -72,54 +72,70 @@ func (n *DesktopNotifier) Enabled() bool {
 	return n.enabled
 }
 
-// Goal sends a desktop notification for a new goal event.
-// Includes scorer name, minute, team, and current score.
-// Always plays a terminal beep as a fallback notification.
+// Goal sends a desktop notification for a new scoring event.
+// Works for both football goals and NBA field goals / free throws.
 func (n *DesktopNotifier) Goal(event api.MatchEvent, homeTeam, awayTeam api.Team, homeScore, awayScore int) error {
 	if !n.enabled {
 		return nil
 	}
 
-	// Play terminal beep via stderr (bypasses bubbletea's stdout capture)
-	// This works even when the TUI is active
+	// Play terminal beep via stderr
 	_, _ = os.Stderr.WriteString("\a")
 
 	// Build notification content
 	title := constants.NotificationTitleGoal
 	message := formatGoalMessage(event, homeTeam, awayTeam, homeScore, awayScore)
 
-	// Send notification via beeep (cross-platform)
-	// Errors are ignored - OS notification is best-effort, beep already played
-	// Icon shows golazo logo on Linux/Windows; macOS shows terminal app icon
 	_ = beeep.Notify(title, message, getIconPath())
-
 	return nil
 }
 
-// formatGoalMessage creates the notification message for a goal.
-// Format: "Scorer (Team) 34' | Home 2-1 Away"
+// formatGoalMessage creates the notification message for a scoring event.
+// Handles football goals and NBA field goals / free throws.
 func formatGoalMessage(event api.MatchEvent, homeTeam, awayTeam api.Team, homeScore, awayScore int) string {
 	scorer := "Unknown"
 	if event.Player != nil {
 		scorer = *event.Player
 	}
 
-	// Determine which team scored
 	teamName := event.Team.ShortName
 	if teamName == "" {
 		teamName = event.Team.Name
 	}
 
-	// Build message with assist if available
-	assistText := ""
-	if event.Assist != nil && *event.Assist != "" {
-		assistText = fmt.Sprintf(" (%s)", *event.Assist)
+	// Use DisplayMinute if set (e.g. "Q3 2:34"), otherwise fall back to Minute'
+	timeStr := ""
+	if event.DisplayMinute != "" {
+		timeStr = event.DisplayMinute
+	} else {
+		timeStr = fmt.Sprintf("%d'", event.Minute)
 	}
 
-	return fmt.Sprintf("%s%s %d' [%s]\n%s %d - %d %s",
+	// Build event label
+	var label string
+	switch event.Type {
+	case "field_goal":
+		if event.IsThree != nil && *event.IsThree {
+			label = "3PT"
+		} else {
+			label = "BASKET"
+		}
+		if event.Points != nil {
+			label = fmt.Sprintf("%s +%d", label, *event.Points)
+		}
+	case "free_throw":
+		label = "FT +1"
+	default:
+		label = "GOAL"
+		if event.Assist != nil && *event.Assist != "" {
+			scorer = fmt.Sprintf("%s (%s)", scorer, *event.Assist)
+		}
+	}
+
+	return fmt.Sprintf("%s %s [%s · %s]\n%s %d - %d %s",
 		scorer,
-		assistText,
-		event.Minute,
+		timeStr,
+		label,
 		teamName,
 		homeTeam.ShortName,
 		homeScore,

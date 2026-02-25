@@ -47,9 +47,9 @@ func (m MatchDisplay) Description() string {
 
 	line1 := strings.Join(parts, " • ")
 
-	// Add start time (kick-off time) on second line
+	// Add start time (tip-off time) on second line
 	if m.MatchTime != nil {
-		return line1 + "\nKO " + m.MatchTime.Local().Format("15:04")
+		return line1 + "\nTip-off " + m.MatchTime.Local().Format("15:04")
 	}
 
 	return line1

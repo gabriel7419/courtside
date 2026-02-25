@@ -1,50 +1,50 @@
-# NBA Fork — Visão Geral
+# NBA Fork — Overview
 
-Este documento resume como o Courtside se relaciona com o Golazo e quais as diferenças chave entre os dois projetos.
+This document summarizes how Courtside relates to Golazo and what the key differences are between the two projects.
 
-## O que é o Courtside?
+## What is Courtside?
 
-Courtside é um fork do [Golazo](https://github.com/0xjuanma/golazo) adaptado para acompanhar jogos da NBA no terminal. A base de código é essencialmente a mesma — a diferença está na camada de dados (`internal/nba/` em vez de `internal/fotmob/`) e em alguns ajustes de UI (labels, formatação de placar, etc.).
+Courtside is a fork of [Golazo](https://github.com/0xjuanma/golazo) adapted for following NBA games in the terminal. The codebase is essentially the same — the difference is in the data layer (`internal/nba/` instead of `internal/fotmob/`) and some UI adjustments (labels, score formatting, etc.).
 
-A maior parte do trabalho é implementar o cliente da NBA Stats API e mapear as respostas para os tipos internos do projeto.
+Most of the work involved implementing the NBA Stats API client and mapping its responses to the project's internal types.
 
-## Diferenças Chave
+## Key Differences
 
-| Componente | Golazo | Courtside |
+| Component | Golazo | Courtside |
 |---|---|---|
 | API | FotMob | NBA Stats API |
-| Pacote do cliente | `internal/fotmob/` | `internal/nba/` |
-| Struct principal | `Match` | `Game` |
-| Exibição de tempo | `"45'"` | `"Q3 2:34"` |
-| Placar | Baixo (0–5) | Alto (90–120) |
-| Competições | 50+ ligas mundiais | Eastern/Western + playoffs |
+| Client package | `internal/fotmob/` | `internal/nba/` |
+| Core struct | `Match` | `Game` |
+| Time display | `"45'"` | `"Q3 2:34"` |
+| Score range | Low (0–5) | High (90–120) |
+| Competitions | 50+ worldwide leagues | Eastern/Western + playoffs |
 | Highlights | r/soccer | r/nba |
 
-## Vantagens da Arquitetura
+## Architecture Advantages
 
-O Golazo foi projetado com boa separação de responsabilidades:
+Golazo was designed with clear separation of concerns:
 
-- `internal/api/` define uma interface agnóstica de esporte — troca-se o cliente sem mexer na UI
-- O sistema de cache com TTL já existe e funciona
-- O rate limiting já é configurável
-- Cerca de 80% da UI pode ser reaproveitada (só mudar labels e formatações)
+- `internal/api/` defines a sport-agnostic interface — swap the client without touching the UI
+- The TTL-based cache already exists and works
+- Rate limiting is already configurable
+- About 80% of the UI can be reused (only labels and formatting need updating)
 
-## Desafios Esperados
+## Expected Challenges
 
-- A NBA Stats API não é documentada oficialmente e pode mudar
-- As respostas são em formato tabular (`headers[]` + `rowSet[][]`), o que exige mapeamento manual dos índices
-- A NBA tem mais tipos de eventos que futebol (field goals, fouls, timeouts, jump balls...)
-- Scores altos (ex: 98-105) precisam de ajuste no layout da UI
+- The NBA Stats API is not officially documented and may change without notice
+- Responses use a tabular format (`headers[]` + `rowSet[][]`), requiring manual index mapping
+- Basketball has more event types than football (field goals, fouls, timeouts, jump balls, etc.)
+- High scores (e.g., 98–105) need layout adjustments in the UI
 
-## O que já está pronto
+## What's Already Done
 
-- Documentação completa (este arquivo, FORK_PLAN, API_REFERENCE)
-- Script de teste da API (`scripts/test_nba_api.go`)
-- Mapeamento de conceitos de futebol → NBA
-- Estrutura proposta para `internal/nba/`
+- Full documentation (this file, FORK_PLAN, API_REFERENCE)
+- API test script (`scripts/test_nba_api.go`)
+- Football-to-NBA concept mapping
+- Proposed structure for `internal/nba/`
+- Full NBA client implementation (`internal/nba/client.go`)
+- UI adaptation for basketball (quarter/clock display, scoring events)
 
-## Próximo passo
+## Next Steps
 
-Implementar `internal/nba/client.go`, começando pelo método `GamesByDate()`. O arquivo `internal/fotmob/client.go` é a melhor referência de como estruturar isso.
-
-Ver [FORK_PLAN.md](FORK_PLAN.md) para o roadmap completo.
+Implement the `LiveUpdateParser` for NBA-specific events and refine the play-by-play display. See [FORK_PLAN.md](FORK_PLAN.md) for the full roadmap.

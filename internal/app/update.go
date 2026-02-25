@@ -1118,12 +1118,15 @@ func (m *model) notifyNewGoals(details *api.MatchDetails) {
 		return
 	}
 
-	// Find the most recent goal event to get player details
+	// Find the most recent scoring event to get player details
 	var goalEvent *api.MatchEvent
 	for i := len(details.Events) - 1; i >= 0; i-- {
 		event := details.Events[i]
-		if strings.ToLower(event.Type) == "goal" {
-			// Check if this goal matches the team that scored
+		eventType := strings.ToLower(event.Type)
+		// Detect football goals and NBA scoring events
+		isScoreEvent := eventType == "goal" || eventType == "field_goal" || eventType == "free_throw"
+		if isScoreEvent {
+			// Check if this event matches the team that scored
 			if homeGoalScored && event.Team.ID == details.HomeTeam.ID {
 				goalEvent = &event
 				break

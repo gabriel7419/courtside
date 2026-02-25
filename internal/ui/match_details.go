@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/gabriel7419/courtside/internal/api"
 	"github.com/gabriel7419/courtside/internal/constants"
 	"github.com/gabriel7419/courtside/internal/ui/design"
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // MatchDetailsConfig holds all parameters for rendering match details.
@@ -183,14 +183,24 @@ func renderMatchContext(details *api.MatchDetails, contentWidth int) []string {
 		lines = append(lines, neonLabelStyle.Render("Attendance:  ")+neonValueStyle.Render(formatNumber(details.Attendance)))
 	}
 
-	// Half-time score
-	if details.HalfTimeScore != nil && details.HalfTimeScore.Home != nil && details.HalfTimeScore.Away != nil {
+	// Quarter-by-quarter scores (NBA)
+	if len(details.QuarterScores) >= 8 {
+		// format: [Q1home, Q1away, Q2home, Q2away, ...]
+		var qParts []string
+		for q := 0; q < len(details.QuarterScores)/2; q++ {
+			qParts = append(qParts, fmt.Sprintf("Q%d %d-%d", q+1, details.QuarterScores[q*2], details.QuarterScores[q*2+1]))
+		}
+		lines = append(lines, neonLabelStyle.Render("By quarter:  ")+neonValueStyle.Render(strings.Join(qParts, "  ")))
+	} else if details.HalfTimeScore != nil && details.HalfTimeScore.Home != nil && details.HalfTimeScore.Away != nil {
+		// Football half-time
 		htText := fmt.Sprintf("HT: %d - %d", *details.HalfTimeScore.Home, *details.HalfTimeScore.Away)
 		lines = append(lines, neonLabelStyle.Render("Half-time:   ")+neonValueStyle.Render(htText))
 	}
 
-	// Extra time
-	if details.ExtraTime {
+	// Extra time / overtime
+	if details.Overtime {
+		lines = append(lines, neonLabelStyle.Render("Duration:    ")+neonValueStyle.Render("After Overtime"))
+	} else if details.ExtraTime {
 		lines = append(lines, neonLabelStyle.Render("Duration:    ")+neonValueStyle.Render("After Extra Time"))
 	}
 
@@ -226,7 +236,9 @@ func renderGoalsSection(cfg MatchDetailsConfig, contentWidth int) string {
 	details := cfg.Details
 	var goals []api.MatchEvent
 	for _, event := range details.Events {
-		if event.Type == "goal" {
+		// Include football goals and NBA scoring events (field goals + free throws)
+		switch event.Type {
+		case "goal", "field_goal", "free_throw":
 			goals = append(goals, event)
 		}
 	}
@@ -237,7 +249,15 @@ func renderGoalsSection(cfg MatchDetailsConfig, contentWidth int) string {
 
 	var lines []string
 	lines = append(lines, "")
-	lines = append(lines, neonHeaderStyle.Render("Goals"))
+	// Section header: "Goals" for football, "Scoring" if NBA events present
+	sectionTitle := "Goals"
+	for _, g := range goals {
+		if g.Type == "field_goal" || g.Type == "free_throw" {
+			sectionTitle = "Scoring"
+			break
+		}
+	}
+	lines = append(lines, neonHeaderStyle.Render(sectionTitle))
 
 	for _, goal := range goals {
 		player := "Unknown"
@@ -249,13 +269,30 @@ func renderGoalsSection(cfg MatchDetailsConfig, contentWidth int) string {
 		playerDetails := neonValueStyle.Render(player)
 		replayIndicator := getReplayIndicator(details, cfg.GoalLinks, goal.Minute)
 
-		// Use gradient for GOAL or OWN GOAL label
-		label := "GOAL"
-		if goal.OwnGoal != nil && *goal.OwnGoal {
-			label = "OWN GOAL"
+		// Build label based on event type
+		var label string
+		switch goal.Type {
+		case "field_goal":
+			if goal.IsThree != nil && *goal.IsThree {
+				label = "3PT"
+			} else {
+				label = "BASKET"
+			}
+			if goal.Points != nil {
+				player = fmt.Sprintf("%s (+%d)", player, *goal.Points)
+				playerDetails = neonValueStyle.Render(player)
+			}
+		case "free_throw":
+			label = "FT"
+		default:
+			label = "GOAL"
+			if goal.OwnGoal != nil && *goal.OwnGoal {
+				label = "OWN GOAL"
+			}
 		}
-		styledGoal := design.ApplyGradientToText(label)
-		goalContent := buildEventContent(playerDetails, replayIndicator, "●", styledGoal, isHome)
+
+		styledLabel := design.ApplyGradientToText(label)
+		goalContent := buildEventContent(playerDetails, replayIndicator, "●", styledLabel, isHome)
 
 		minuteStr := goal.DisplayMinute
 		if minuteStr == "" {
