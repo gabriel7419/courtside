@@ -147,14 +147,18 @@ type MatchHighlight struct {
 
 // LeagueTableEntry represents a team's standing in a league or conference.
 type LeagueTableEntry struct {
-	Position       int  `json:"position"`
-	Team           Team `json:"team"`
-	Played         int  `json:"played"`
-	Won            int  `json:"won"`
-	Drawn          int  `json:"drawn"`
-	Lost           int  `json:"lost"`
-	GoalsFor       int  `json:"goals_for"`
-	GoalsAgainst   int  `json:"goals_against"`
-	GoalDifference int  `json:"goal_difference"`
-	Points         int  `json:"points"`
+	Position       int    `json:"position"`
+	Team           Team   `json:"team"`
+	Played         int    `json:"played"`
+	Won            int    `json:"won"`
+	Drawn          int    `json:"drawn,omitempty"` // football only
+	Lost           int    `json:"lost"`
+	GoalsFor       int    `json:"goals_for,omitempty"`     // football only
+	GoalsAgainst   int    `json:"goals_against,omitempty"` // football only
+	PointsFor      int    `json:"points_for,omitempty"`    // NBA: win% × 1000
+	PointsAgainst  int    `json:"points_against,omitempty"`
+	GoalDifference int    `json:"goal_difference,omitempty"`
+	Points         int    `json:"points"`         // football: pts; NBA: wins
+	Form           string `json:"form,omitempty"` // e.g. "W3", "L2" for NBA; "WWDLL" for football
+	Note           string `json:"note,omitempty"` // e.g. "East | GB: 3.5"
 }

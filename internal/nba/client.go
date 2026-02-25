@@ -302,9 +302,90 @@ func (c *Client) LeagueMatches(_ context.Context, _ int) ([]api.Match, error) {
 	return []api.Match{}, nil
 }
 
-// LeagueTable returns an empty slice (NBA standings not yet implemented).
-func (c *Client) LeagueTable(_ context.Context, _ int, _ string) ([]api.LeagueTableEntry, error) {
-	return []api.LeagueTableEntry{}, nil
+// LeagueTable returns NBA standings for the requested conference.
+// leagueID: 0 = all teams, 1 = Eastern Conference, 2 = Western Conference.
+// leagueName is ignored for NBA (kept for interface compatibility).
+func (c *Client) LeagueTable(ctx context.Context, leagueID int, _ string) ([]api.LeagueTableEntry, error) {
+	season := currentNBASeason()
+	url := fmt.Sprintf("%s/leaguestandingsv3?LeagueID=00&Season=%s&SeasonType=Regular+Season", c.baseURL, season)
+
+	var resp standingsResponse
+	if err := c.do(ctx, url, &resp); err != nil {
+		return nil, fmt.Errorf("fetch standings for %s: %w", season, err)
+	}
+
+	standings := findResultSet(resp.ResultSets, "Standings")
+
+	var entries []api.LeagueTableEntry
+	for _, row := range standings.RowSet {
+		conf := standings.colStr(row, "Conference")
+
+		// Filter by conference if requested
+		switch leagueID {
+		case 1: // Eastern
+			if conf != "East" {
+				continue
+			}
+		case 2: // Western
+			if conf != "West" {
+				continue
+			}
+		}
+
+		teamName := strings.TrimSpace(standings.colStr(row, "TeamCity") + " " + standings.colStr(row, "TeamName"))
+		wins := standings.colInt(row, "WINS")
+		losses := standings.colInt(row, "LOSSES")
+
+		// Win percentage
+		total := wins + losses
+		var pct float64
+		if total > 0 {
+			pct = float64(wins) / float64(total)
+		}
+
+		// Games behind (float stored as string like "3.5")
+		gbStr := standings.colStr(row, "ConferenceGamesBack")
+		if gbStr == "" {
+			gbStr = standings.colStr(row, "LeagueGamesBack")
+		}
+
+		// Current streak ("W3" or "L2")
+		streakStr := standings.colStr(row, "CurrentStreak")
+
+		// Points for/against — use as proxy for stats
+		// NBA doesn't expose PF/PA in standings v3, so we leave them 0
+		// and store meaningful data in the label fields
+		confRank := standings.colInt(row, "ConferenceRank")
+
+		entry := api.LeagueTableEntry{
+			Team:           api.Team{Name: teamName, ShortName: standings.colStr(row, "TeamAbbreviation")},
+			Position:       confRank,
+			Played:         total,
+			Won:            wins,
+			Lost:           losses,
+			Points:         wins,            // NBA uses wins as points
+			PointsFor:      int(pct * 1000), // win% × 1000 as a sortable int
+			PointsAgainst:  0,
+			GoalDifference: 0,
+			Form:           streakStr,
+			Note:           fmt.Sprintf("%s | GB: %s", conf, gbStr),
+		}
+		entries = append(entries, entry)
+	}
+
+	return entries, nil
+}
+
+// currentNBASeason returns the NBA season string for the current date.
+// e.g. Feb 2026 → "2025-26"
+func currentNBASeason() string {
+	now := time.Now()
+	year := now.Year()
+	if now.Month() < 10 {
+		year-- // season starts in October
+	}
+	short := (year + 1) % 100
+	return fmt.Sprintf("%d-%02d", year, short)
 }
 
 // --- Parsing helpers ---

@@ -115,6 +115,11 @@ type playByPlayResponse struct {
 	ResultSets []resultSet `json:"resultSets"`
 }
 
+// standingsResponse is returned by GET /stats/leaguestandingsv3
+type standingsResponse struct {
+	ResultSets []resultSet `json:"resultSets"`
+}
+
 // --- Status constants ---
 
 // GAME_STATUS_ID values in the NBA API.

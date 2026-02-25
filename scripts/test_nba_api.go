@@ -1,5 +1,5 @@
-// Script de teste para explorar a NBA Stats API
-// Execute: go run scripts/test_nba_api.go
+// NBA Stats API test script — hit endpoints and inspect raw responses.
+// Usage: go run scripts/test_nba_api.go [flags]
 
 package main
 
@@ -35,7 +35,7 @@ func (c *NBAClient) makeRequest(url string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	// Headers obrigatórios para NBA API
+	// Required headers — without these the API returns 403.
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	req.Header.Set("Referer", "https://www.nba.com/")
 	req.Header.Set("Accept", "application/json")
@@ -85,6 +85,12 @@ func (c *NBAClient) GetBoxScoreTraditional(gameID string) (map[string]interface{
 	return c.makeRequest(url)
 }
 
+func (c *NBAClient) GetStandings(season string) (map[string]interface{}, error) {
+	// season format: "2025-26"
+	url := fmt.Sprintf("%s/leaguestandingsv3?LeagueID=00&Season=%s&SeasonType=Regular+Season", baseURL, season)
+	return c.makeRequest(url)
+}
+
 func (c *NBAClient) GetPlayByPlay(gameID string) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/playbyplayv2?GameID=%s&StartPeriod=1&EndPeriod=10", baseURL, gameID)
 	return c.makeRequest(url)
@@ -109,9 +115,10 @@ func saveJSON(filename string, data interface{}) error {
 
 func main() {
 	// Flags
-	endpoint := flag.String("endpoint", "scoreboard", "Endpoint to test: scoreboard, summary, traditional, playbyplay")
+	endpoint := flag.String("endpoint", "scoreboard", "Endpoint: scoreboard, summary, traditional, playbyplay, standings")
 	date := flag.String("date", time.Now().Format("2006-01-02"), "Date for scoreboard (YYYY-MM-DD)")
 	gameID := flag.String("game", "", "Game ID for detailed endpoints")
+	season := flag.String("season", currentSeason(), "Season for standings (e.g. 2025-26)")
 	output := flag.String("output", "", "Save output to file")
 	flag.Parse()
 
@@ -146,6 +153,10 @@ func main() {
 		fmt.Printf("📈 Fetching traditional box score for game: %s\n\n", *gameID)
 		result, err = client.GetBoxScoreTraditional(*gameID)
 
+	case "standings":
+		fmt.Printf("📊 Fetching standings for season: %s\n\n", *season)
+		result, err = client.GetStandings(*season)
+
 	case "playbyplay":
 		if *gameID == "" {
 			fmt.Println("❌ Error: --game flag is required for playbyplay endpoint")
@@ -157,7 +168,7 @@ func main() {
 
 	default:
 		fmt.Printf("❌ Unknown endpoint: %s\n", *endpoint)
-		fmt.Println("Valid endpoints: scoreboard, summary, traditional, playbyplay")
+		fmt.Println("Valid endpoints: scoreboard, summary, traditional, playbyplay, standings")
 		os.Exit(1)
 	}
 
@@ -203,8 +214,22 @@ func main() {
 	fmt.Println("   - Use --output=file.json to save response")
 	fmt.Println("   - Use --date=2026-02-25 to specify date")
 	fmt.Println("   - Use --game=0022300789 for game-specific data")
+	fmt.Println("   - Use --season=2025-26 for standings")
 	fmt.Println("\n📚 Examples:")
 	fmt.Println("   go run scripts/test_nba_api.go --endpoint=scoreboard --date=2026-02-25")
 	fmt.Println("   go run scripts/test_nba_api.go --endpoint=summary --game=0022300789 --output=summary.json")
 	fmt.Println("   go run scripts/test_nba_api.go --endpoint=traditional --game=0022300789")
+	fmt.Println("   go run scripts/test_nba_api.go --endpoint=standings --season=2025-26")
+}
+
+// currentSeason returns the NBA season string for today's date.
+// e.g. if today is Feb 2026 → "2025-26"
+func currentSeason() string {
+	now := time.Now()
+	year := now.Year()
+	// NBA season starts in October; before October we're still in previous season
+	if now.Month() < 10 {
+		year--
+	}
+	return fmt.Sprintf("%d-%02d", year, (year+1)%100)
 }
