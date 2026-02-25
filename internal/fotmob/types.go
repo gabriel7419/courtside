@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/gabriel7419/courtside/internal/api"
 )
 
 // fotmobMatch represents a match in FotMob's API format

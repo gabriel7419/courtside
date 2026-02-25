@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/0xjuanma/golazo/internal/ui/logo"
+	"github.com/gabriel7419/courtside/internal/ui/logo"
 )
 
 // IsOlder returns true if versionA is older than versionB

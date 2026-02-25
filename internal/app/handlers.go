@@ -3,11 +3,11 @@ package app
 import (
 	"fmt"
 
-	"github.com/0xjuanma/golazo/internal/api"
-	"github.com/0xjuanma/golazo/internal/fotmob"
-	"github.com/0xjuanma/golazo/internal/ui"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gabriel7419/courtside/internal/api"
+	"github.com/gabriel7419/courtside/internal/nba"
+	"github.com/gabriel7419/courtside/internal/ui"
 )
 
 // handleMainViewKeys processes keyboard input for the main menu view.
@@ -62,22 +62,20 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.loading = true
 			m.statsData = nil                          // Clear cached data to force fresh fetch
 			m.statsDaysLoaded = 0                      // Reset progress
-			m.statsTotalDays = fotmob.StatsDataDays    // Set total days to load
+			m.statsTotalDays = nba.StatsDataDays       // Set total days to load
 			m.statsMatchesList.SetItems([]list.Item{}) // Clear list
 			cmds = append(cmds, ui.SpinnerTick())
-			// Start fetching day 0 (today) first - results shown immediately when it completes
-			cmds = append(cmds, fetchStatsDayData(m.fotmobClient, m.useMockData, 0, fotmob.StatsDataDays))
+			// Start fetching day 0 (today) first
+			cmds = append(cmds, fetchStatsDayData(m.nbaClient, m.useMockData, 0, nba.StatsDataDays))
 		case 1: // Live Matches view - preload live matches progressively (parallel batches)
 			m.liveViewLoading = true
 			m.loading = true
 			m.liveBatchesLoaded = 0
-			totalLeagues := fotmob.TotalLeagues()
-			m.liveTotalBatches = (totalLeagues + LiveBatchSize - 1) / LiveBatchSize // Ceiling division
-			m.liveMatchesBuffer = nil                                               // Clear buffer
+			m.liveTotalBatches = 1 // NBA: single scoreboard call
+			m.liveMatchesBuffer = nil
 			m.liveMatchesList.SetItems([]list.Item{})
 			cmds = append(cmds, ui.SpinnerTick())
-			// Start fetching batch 0 (4 leagues in parallel) - results shown when batch completes
-			cmds = append(cmds, fetchLiveBatchData(m.fotmobClient, m.useMockData, 0))
+			cmds = append(cmds, fetchLiveBatchData(m.nbaClient, m.useMockData, 0))
 		}
 
 		return m, tea.Batch(cmds...)
@@ -139,8 +137,8 @@ func (m model) handleStatsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.statsViewLoading = true
 	m.loading = true
 	m.statsDaysLoaded = 0
-	m.statsTotalDays = fotmob.StatsDataDays
-	return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), fetchStatsDayData(m.fotmobClient, m.useMockData, 0, fotmob.StatsDataDays))
+	m.statsTotalDays = nba.StatsDataDays
+	return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), fetchStatsDayData(m.nbaClient, m.useMockData, 0, nba.StatsDataDays))
 }
 
 // loadMatchDetails loads match details for the live matches view.
@@ -161,9 +159,9 @@ func (m model) loadMatchDetailsWithRefresh(matchID int, forceRefresh bool) (tea.
 
 	var cmd tea.Cmd
 	if forceRefresh {
-		cmd = fetchMatchDetailsForceRefresh(m.fotmobClient, matchID, m.useMockData)
+		cmd = fetchMatchDetailsForceRefresh(m.nbaClient, matchID, m.useMockData)
 	} else {
-		cmd = fetchMatchDetails(m.fotmobClient, matchID, m.useMockData)
+		cmd = fetchMatchDetails(m.nbaClient, matchID, m.useMockData)
 	}
 
 	return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), cmd)
@@ -196,7 +194,7 @@ func (m model) loadStatsMatchDetailsWithRefresh(matchID int, forceRefresh bool) 
 	m.loading = true
 	m.statsViewLoading = true
 	m.debugLog(fmt.Sprintf("Fetching match details from API for ID: %d", matchID))
-	return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), fetchStatsMatchDetailsFotmob(m.fotmobClient, matchID, m.useMockData))
+	return m, tea.Batch(m.spinner.Tick, ui.SpinnerTick(), fetchStatsMatchDetails(m.nbaClient, matchID, m.useMockData))
 }
 
 // handleSettingsViewKeys processes keyboard input for the settings view.

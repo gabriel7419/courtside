@@ -1,105 +1,112 @@
 <div align="center">
-  <img src="assets/golazo-logo.png" alt="Golazo demo" width="150">
-  <h1>Golazo</h1>
+  <h1>🏀 Courtside</h1>
 </div>
 
 <div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/0xjuanma/golazo?style=social)](https://github.com/0xjuanma/golazo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Report Card](https://goreportcard.com/badge/github.com/0xjuanma/golazo)](https://goreportcard.com/report/github.com/0xjuanma/golazo)
-[![GitHub Release](https://img.shields.io/github/v/release/0xjuanma/golazo)](https://github.com/0xjuanma/golazo/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/0xjuanma/golazo/build.yml)](https://github.com/0xjuanma/golazo/actions/workflows/build.yml)
-
-[![GitHub Downloads](https://img.shields.io/github/downloads/0xjuanma/golazo/total)](https://github.com/0xjuanma/golazo/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gabriel7419/courtside)](https://goreportcard.com/report/github.com/gabriel7419/courtside)
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 ![Windows](https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white)
 
-A minimalist terminal user interface (TUI) for following football (soccer) matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.
+A minimalist terminal UI (TUI) for following NBA games in real-time — live scores, play-by-play events, and box score stats, all without leaving your terminal.
 
-Golazo was created for those moments when you can't stream or watch matches live. It gives you a handy, non-intrusive, and minimalist way to keep up with your favourite football leagues.
+*Inspired by [Golazo](https://github.com/0xjuanma/golazo) — adapted for basketball.*
 
-*Perfect for developers and terminal enthusiasts who want match updates without leaving their workflow.*
 </div>
 
 > [!NOTE]
-> If you enjoy Golazo, give it a star and share it with your friends. That helps others find it and keeps the project going!
-
-<div align="center">
-  <img src="assets/golazo-demo-v0.18.0.gif" alt="Golazo demo" width="800">
-</div>
-
-<div align="center">
-
-**Quick Install:** `brew install 0xjuanma/tap/golazo` · [Other options](#installation--update)
-
-</div>
+> This project is under active development. See the [roadmap](#roadmap) for what's coming.
 
 ## Features
 
-- **Live Match Tracking**: Timeline & Real-time updates for goals, cards, and substitutions with automatic polling
-- **Match Statistics & Details**: Possession, shots, passes, standings, formations with player ratings, and more in focused dialogs
-- **Official Highlights & Replay Links**: Clickable links for official highlights and instant goal replays
-- **Goal Notifications**: Desktop notifications for goals as they happen
-- **Finished Matches**: View results from today, last 3 days, or last 5 days
-- **50+ Leagues**: Organized by region (Europe, Americas, Global) with tab navigation in Settings
+- **Live updates** — scores, fouls, timeouts, and substitutions with automatic polling
+- **Box score stats** — FG%, rebounds, assists, steals, blocks, turnovers in a focused dialog
+- **Finished games** — results from today, last 3 days, or last 5 days
+- **Conference filtering** — Eastern and Western, with playoff series support
+- **Highlight links** — links to r/nba highlights
+- **Desktop notifications** — for key moments during live games
 
-## Installation & Update
+## What's Different from Golazo?
 
-**Self-update:** Run `golazo --update` anytime to get the latest version.
+| | Golazo | Courtside |
+|---|---|---|
+| Sport | Football/Soccer | Basketball (NBA) |
+| Data source | FotMob API | NBA Stats API |
+| Game structure | 2 halves (45 min) | 4 quarters (12 min) + OT |
+| Score display | `2-1` | `105-98` |
+| Live time | `45+2'` | `Q3 2:34` |
+| Events | Goals, cards, subs | Field goals, fouls, timeouts |
+| Competitions | 50+ leagues worldwide | NBA (East/West) + playoffs |
+| Highlights | r/soccer | r/nba |
 
-### Homebrew
+## Installation
 
-```bash
-# Install
-brew install 0xjuanma/tap/golazo
-
-# Update
-brew upgrade 0xjuanma/tap/golazo
-```
-
-### Install script
-
-**macOS / Linux:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.sh | bash
-```
-
-**Windows (PowerShell):**
-```powershell
-irm https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.ps1 | iex
-```
+> [!WARNING]
+> Not yet available — still under development.
 
 ### Build from source
 
 ```bash
-git clone https://github.com/0xjuanma/golazo.git
-cd golazo
-go build 
-./golazo
+git clone https://github.com/gabriel7419/courtside.git
+cd courtside
+go build
+./courtside
 ```
 
 ## Usage
 
-Run the application:
 ```bash
-golazo
+courtside
 ```
 
-**Navigation:** `↑`/`↓` or `j`/`k` to move, `Enter` to select, `/` to filter, `Tab` to focus view, `Esc` to go back, `q` to quit.
+**Navigation:** `↑`/`↓` or `j`/`k` to move, `Enter` to select, `/` to filter, `Tab` to switch pane, `Esc` to go back, `q` to quit.
+
+**Views:**
+- **Today's games** — live and upcoming games
+- **Finished games** — recent results (last 3 or 5 days)
+- **Settings** — filter by conference, toggle notifications
 
 ## Docs
 
-- [Supported Leagues](docs/SUPPORTED_LEAGUES.md): Full list of available leagues and competitions, customize your preferences in the **Settings** menu.
-- [Notifications](docs/NOTIFICATIONS.md): Desktop notification setup and configuration
+- [Quick Start](QUICKSTART.md) — set up your development environment
+- [Supported Teams](docs/SUPPORTED_TEAMS.md) — all 30 NBA teams by conference and division
+- [Notifications](docs/NOTIFICATIONS.md) — desktop notification setup
+- [API Reference](docs/API_REFERENCE.md) — NBA Stats API endpoints and response format
+- [Implementation Plan](docs/FORK_PLAN.md) — full roadmap across 7 phases
+
+## Roadmap
+
+- [x] Project planning and documentation
+- [ ] NBA API integration (`internal/nba/`)
+- [ ] List today's games
+- [ ] Game details view
+- [ ] Live game polling
+- [ ] Statistics dialog
+- [ ] r/nba highlights integration
+- [ ] Desktop notifications
+- [ ] Playoff bracket view
+- [ ] WNBA support
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow, code guidelines, and what currently needs help.
+
+## Credits
+
+Courtside is a fork/adaptation of [Golazo](https://github.com/0xjuanma/golazo) by [@0xjuanma](https://github.com/0xjuanma).
+
+Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss) and [Bubbles](https://github.com/charmbracelet/bubbles) by [Charm](https://charm.sh).
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-**Built with** [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss) & [Bubbles](https://github.com/charmbracelet/bubbles) by [Charm](https://charm.sh)
-
-Author: [@0xjuanma](https://github.com/0xjuanma)
+*Made with ❤️ for basketball and terminal enthusiasts*
 
 </div>

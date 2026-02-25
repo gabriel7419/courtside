@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/gabriel7419/courtside/internal/api"
 )
 
 // MatchDisplay wraps a match with display information for rendering.

@@ -7,19 +7,19 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/api"
-	"github.com/0xjuanma/golazo/internal/constants"
-	"github.com/0xjuanma/golazo/internal/data"
-	"github.com/0xjuanma/golazo/internal/fotmob"
-	"github.com/0xjuanma/golazo/internal/notify"
-	"github.com/0xjuanma/golazo/internal/reddit"
-	"github.com/0xjuanma/golazo/internal/ui"
-	"github.com/0xjuanma/golazo/internal/ui/logo"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gabriel7419/courtside/internal/api"
+	"github.com/gabriel7419/courtside/internal/constants"
+	"github.com/gabriel7419/courtside/internal/data"
+	"github.com/gabriel7419/courtside/internal/nba"
+	"github.com/gabriel7419/courtside/internal/notify"
+	"github.com/gabriel7419/courtside/internal/reddit"
+	"github.com/gabriel7419/courtside/internal/ui"
+	"github.com/gabriel7419/courtside/internal/ui/logo"
 )
 
 // view represents the current application view.
@@ -55,7 +55,7 @@ type model struct {
 	lastAwayScore       int // Track last known away score for goal notifications
 
 	// Stats data cache - stores 5 days of data, filtered client-side for Today/3d/5d views
-	statsData *fotmob.StatsData
+	statsData *nba.StatsData
 
 	// Progressive loading state (stats view)
 	statsDaysLoaded int // Number of days loaded so far (0-5)
@@ -103,8 +103,8 @@ type model struct {
 	dialogOverlay *ui.DialogOverlay
 
 	// API clients
-	fotmobClient *fotmob.Client
-	parser       *fotmob.LiveUpdateParser
+	nbaClient    *nba.Client
+	parser       *nba.LiveUpdateParser
 	redditClient *reddit.Client
 
 	// Goal replay links from Reddit (keyed by matchID:minute)
@@ -215,8 +215,8 @@ func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable 
 		isDevBuild:             isDevBuild,
 		newVersionAvailable:    newVersionAvailable,
 		appVersion:             appVersion,
-		fotmobClient:           fotmob.NewClient(),
-		parser:                 fotmob.NewLiveUpdateParser(),
+		nbaClient:              nba.NewClient(),
+		parser:                 nba.NewLiveUpdateParser(),
 		redditClient:           redditClient,
 		goalLinks:              make(map[reddit.GoalLinkKey]*reddit.GoalLink),
 		notifier:               notify.NewDesktopNotifier(),

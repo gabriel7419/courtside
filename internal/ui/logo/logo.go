@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/0xjuanma/golazo/internal/ui/design"
+	"github.com/gabriel7419/courtside/internal/ui/design"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/lucasb-eyer/go-colorful"
 )

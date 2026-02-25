@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/gabriel7419/courtside/internal/api"
 )
 
 // MockMatchesData contains multiple matches for testing.

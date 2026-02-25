@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/api"
-	"github.com/0xjuanma/golazo/internal/data"
-	"github.com/0xjuanma/golazo/internal/fotmob"
-	"github.com/0xjuanma/golazo/internal/reddit"
-	"github.com/0xjuanma/golazo/internal/ui"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gabriel7419/courtside/internal/api"
+	"github.com/gabriel7419/courtside/internal/data"
+	"github.com/gabriel7419/courtside/internal/nba"
+	"github.com/gabriel7419/courtside/internal/reddit"
+	"github.com/gabriel7419/courtside/internal/ui"
 )
 
 // Update handles all incoming messages and updates the model accordingly.
@@ -473,7 +473,7 @@ func (m model) handleStatsSelection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Fetch standings and open dialog
 			if m.matchDetails != nil {
 				return m, fetchStandings(
-					m.fotmobClient,
+					m.nbaClient,
 					m.matchDetails.League.ID,
 					m.matchDetails.League.Name,
 					m.matchDetails.League.ParentLeagueID,
@@ -563,7 +563,7 @@ func (m model) handleLiveMatches(msg liveMatchesMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	// Schedule the next refresh (5-min timer)
-	cmds = append(cmds, scheduleLiveRefresh(m.fotmobClient, m.useMockData))
+	cmds = append(cmds, scheduleLiveRefresh(m.nbaClient, m.useMockData))
 
 	if len(msg.matches) == 0 {
 		m.liveViewLoading = false
@@ -611,7 +611,7 @@ func (m model) handleLiveRefresh(msg liveRefreshMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	// Schedule the next refresh
-	cmds = append(cmds, scheduleLiveRefresh(m.fotmobClient, m.useMockData))
+	cmds = append(cmds, scheduleLiveRefresh(m.nbaClient, m.useMockData))
 
 	if len(msg.matches) == 0 {
 		// No live matches - clear list but keep view
@@ -692,19 +692,19 @@ func (m model) handleLiveBatchData(msg liveBatchDataMsg) (tea.Model, tea.Cmd) {
 		m.loading = false
 
 		// Cache the final result
-		if m.fotmobClient != nil && len(m.liveMatchesBuffer) > 0 {
-			m.fotmobClient.Cache().SetLiveMatches(m.liveMatchesBuffer)
+		if m.nbaClient != nil && len(m.liveMatchesBuffer) > 0 {
+			m.nbaClient.Cache().SetLiveMatches(m.liveMatchesBuffer)
 		}
 
 		// Schedule periodic refresh
-		cmds = append(cmds, scheduleLiveRefresh(m.fotmobClient, m.useMockData))
+		cmds = append(cmds, scheduleLiveRefresh(m.nbaClient, m.useMockData))
 
 		return m, tea.Batch(cmds...)
 	}
 
 	// Otherwise, fetch next batch
 	nextBatchIndex := msg.batchIndex + 1
-	cmds = append(cmds, fetchLiveBatchData(m.fotmobClient, m.useMockData, nextBatchIndex))
+	cmds = append(cmds, fetchLiveBatchData(m.nbaClient, m.useMockData, nextBatchIndex))
 
 	// Keep spinner running
 	cmds = append(cmds, ui.SpinnerTick())
@@ -778,7 +778,7 @@ func (m model) handleStatsDayData(msg statsDayDataMsg) (tea.Model, tea.Cmd) {
 
 	// Initialize statsData if nil (first day)
 	if m.statsData == nil {
-		m.statsData = &fotmob.StatsData{
+		m.statsData = &nba.StatsData{
 			AllFinished:   []api.Match{},
 			TodayFinished: []api.Match{},
 			TodayUpcoming: []api.Match{},
@@ -870,7 +870,7 @@ func (m model) handleStatsDayData(msg statsDayDataMsg) (tea.Model, tea.Cmd) {
 
 	// Otherwise, fetch next day
 	nextDayIndex := msg.dayIndex + 1
-	cmds = append(cmds, fetchStatsDayData(m.fotmobClient, m.useMockData, nextDayIndex, m.statsTotalDays))
+	cmds = append(cmds, fetchStatsDayData(m.nbaClient, m.useMockData, nextDayIndex, m.statsTotalDays))
 
 	// Keep spinner running
 	cmds = append(cmds, ui.SpinnerTick())
@@ -1053,9 +1053,9 @@ func (m model) handlePollTick(msg pollTickMsg) (tea.Model, tea.Cmd) {
 	// Start the actual API call, spinner animation, and 1s display timer
 	// Also check for any new goals that might have been scored since last poll
 	return m, tea.Batch(
-		fetchPollMatchDetails(m.fotmobClient, msg.matchID, m.useMockData),
+		fetchPollMatchDetails(m.nbaClient, msg.matchID, m.useMockData),
 		ui.SpinnerTick(),
-		schedulePollSpinnerHide(), // Hide spinner after 0.5 seconds
+		schedulePollSpinnerHide(),
 	)
 }
 

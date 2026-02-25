@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/gabriel7419/courtside/internal/api"
 )
 
 // CacheConfig holds configuration for API response caching.

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/0xjuanma/golazo/internal/api"
-	"github.com/0xjuanma/golazo/internal/constants"
+	"github.com/gabriel7419/courtside/internal/api"
+	"github.com/gabriel7419/courtside/internal/constants"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )

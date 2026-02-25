@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/gabriel7419/courtside/internal/api"
 )
 
 // LiveMatches retrieves all currently live matches for today.

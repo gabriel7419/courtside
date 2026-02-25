@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/0xjuanma/golazo/internal/api"
-	"github.com/0xjuanma/golazo/internal/assets"
-	"github.com/0xjuanma/golazo/internal/constants"
-	"github.com/0xjuanma/golazo/internal/data"
+	"github.com/gabriel7419/courtside/internal/api"
+	"github.com/gabriel7419/courtside/internal/assets"
+	"github.com/gabriel7419/courtside/internal/constants"
+	"github.com/gabriel7419/courtside/internal/data"
 	"github.com/gen2brain/beeep"
 )
 

@@ -1,9 +1,9 @@
 package app
 
 import (
-	"github.com/0xjuanma/golazo/internal/api"
-	"github.com/0xjuanma/golazo/internal/fotmob"
-	"github.com/0xjuanma/golazo/internal/reddit"
+	"github.com/gabriel7419/courtside/internal/api"
+	"github.com/gabriel7419/courtside/internal/nba"
+	"github.com/gabriel7419/courtside/internal/reddit"
 )
 
 // liveUpdateMsg contains a live update string for match events.
@@ -34,10 +34,9 @@ type liveBatchDataMsg struct {
 	matches    []api.Match // live matches from all leagues in this batch
 }
 
-// statsDataMsg contains all stats data (5 days finished + today upcoming) from API response.
-// This is the unified message for stats view - always fetches 5 days, filters client-side.
+// statsDataMsg contains stats data for the stats view.
 type statsDataMsg struct {
-	data *fotmob.StatsData
+	data *nba.StatsData
 }
 
 // statsDayDataMsg contains stats data for a single day (progressive loading).

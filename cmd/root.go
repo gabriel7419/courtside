@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/0xjuanma/golazo/internal/app"
-	"github.com/0xjuanma/golazo/internal/data"
-	"github.com/0xjuanma/golazo/internal/version"
+	"github.com/gabriel7419/courtside/internal/app"
+	"github.com/gabriel7419/courtside/internal/data"
+	"github.com/gabriel7419/courtside/internal/version"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )

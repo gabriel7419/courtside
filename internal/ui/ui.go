@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/0xjuanma/golazo/internal/constants"
-	"github.com/0xjuanma/golazo/internal/ui/design"
+	"github.com/gabriel7419/courtside/internal/constants"
+	"github.com/gabriel7419/courtside/internal/ui/design"
 	"github.com/charmbracelet/lipgloss"
 )
 

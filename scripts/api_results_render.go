@@ -33,8 +33,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/debug"
-	"github.com/0xjuanma/golazo/internal/ui"
+	"github.com/gabriel7419/courtside/internal/debug"
+	"github.com/gabriel7419/courtside/internal/ui"
 	"golang.org/x/term"
 )
 

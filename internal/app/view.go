@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 
-	"github.com/0xjuanma/golazo/internal/reddit"
-	"github.com/0xjuanma/golazo/internal/ui"
+	"github.com/gabriel7419/courtside/internal/reddit"
+	"github.com/gabriel7419/courtside/internal/ui"
 )
 
 // View renders the current application state.

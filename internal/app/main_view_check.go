@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	"github.com/0xjuanma/golazo/internal/constants"
+	"github.com/gabriel7419/courtside/internal/constants"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

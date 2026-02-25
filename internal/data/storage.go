@@ -177,13 +177,13 @@ func CheckLatestVersion() (string, error) {
 		Timeout: 10 * time.Second,
 	}
 
-	resp, err := client.Get("https://github.com/0xjuanma/golazo/releases/latest")
+	resp, err := client.Get("https://github.com/gabriel7419/courtside/releases/latest")
 	if err != nil {
 		return "", fmt.Errorf("fetch latest release: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// GitHub redirects to: https://github.com/0xjuanma/golazo/releases/tag/v1.2.3
+	// GitHub redirects to: https://github.com/gabriel7419/courtside/releases/tag/v1.2.3
 	// Extract version from the final URL
 	finalURL := resp.Request.URL.String()
 

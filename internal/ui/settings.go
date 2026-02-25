@@ -3,9 +3,9 @@ package ui
 import (
 	"fmt"
 
-	"github.com/0xjuanma/golazo/internal/constants"
-	"github.com/0xjuanma/golazo/internal/data"
-	"github.com/0xjuanma/golazo/internal/ui/design"
+	"github.com/gabriel7419/courtside/internal/constants"
+	"github.com/gabriel7419/courtside/internal/data"
+	"github.com/gabriel7419/courtside/internal/ui/design"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )

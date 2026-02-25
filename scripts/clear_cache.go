@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/0xjuanma/golazo/internal/fotmob"
+	"github.com/gabriel7419/courtside/internal/fotmob"
 )
 
 func main() {
