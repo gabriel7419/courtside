@@ -65,26 +65,24 @@ func NewPublicJSONFetcher() *PublicJSONFetcher {
 	}
 }
 
-// Search performs a search on r/soccer for Media posts matching the query.
-// matchTime is used to filter results to posts created around the match date.
+// Search performs a search on r/nba for Highlight posts matching the query.
+// matchTime is used to filter results to posts created around the game date.
 // sort controls the result ordering (e.g., "relevance", "top", "new", "hot").
 func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time, sort string) ([]SearchResult, error) {
 	f.rateLimiter.wait()
 
-	// Build timestamp range for filtering (match day only ±12 hours)
-	// Goal videos are posted very soon after goals happen - limit to match day
+	// Build timestamp range for filtering (game day only ±12 hours)
 	startTime := matchTime.Add(-12 * time.Hour).Unix()
 	endTime := matchTime.Add(12 * time.Hour).Unix()
 
-	// Default to relevance if sort is empty
 	if sort == "" {
 		sort = "relevance"
 	}
 
-	// Build search URL for r/soccer with Media flair filter and timestamp
+	// Build search URL for r/nba with Highlight flair filter and timestamp
 	// Reddit CloudSearch supports timestamp:START..END syntax
 	searchURL := fmt.Sprintf(
-		"https://www.reddit.com/r/soccer/search.json?q=%s+flair:Media+timestamp:%d..%d&restrict_sr=on&sort=%s&limit=%d",
+		"https://www.reddit.com/r/nba/search.json?q=%s+flair:Highlight+timestamp:%d..%d&restrict_sr=on&sort=%s&limit=%d",
 		url.QueryEscape(query),
 		startTime,
 		endTime,
@@ -122,8 +120,8 @@ func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time,
 	results := make([]SearchResult, 0, len(searchResp.Data.Children))
 	for _, child := range searchResp.Data.Children {
 		result := child.Data.toSearchResult()
-		// Only include posts with Media flair
-		if result.Flair == "Media" {
+		// Only include posts with Highlight flair (NBA highlight posts)
+		if result.Flair == "Highlight" {
 			results = append(results, result)
 		}
 	}
@@ -131,7 +129,7 @@ func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time,
 	return results, nil
 }
 
-// Client provides goal replay link fetching from Reddit r/soccer.
+// Client provides game highlight link fetching from Reddit r/nba.
 // Uses Reddit's public JSON API for goal link retrieval.
 type Client struct {
 	fetcher     Fetcher // Reddit public API fetcher

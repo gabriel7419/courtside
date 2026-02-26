@@ -128,6 +128,14 @@ func RenderMatchDetails(cfg MatchDetailsConfig) (headerContent, scrollableConten
 			statsSection := renderStatisticsSection(cfg, contentWidth, homeTeam, awayTeam)
 			scrollableLines = append(scrollableLines, statsSection)
 		}
+
+		// NBA box score section (player stats)
+		if len(details.HomePlayerStats) > 0 || len(details.AwayPlayerStats) > 0 {
+			boxSection := renderBoxScoreSection(details, contentWidth)
+			if boxSection != "" {
+				scrollableLines = append(scrollableLines, boxSection)
+			}
+		}
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, headerLines...),
@@ -597,4 +605,104 @@ func formatNumber(n int) string {
 		result.WriteString(string(c))
 	}
 	return result.String()
+}
+
+// renderBoxScoreSection renders a two-column NBA box score (home | away).
+// Shows top scorers (up to 8 per team) sorted by points descending.
+func renderBoxScoreSection(details *api.MatchDetails, contentWidth int) string {
+	if len(details.HomePlayerStats) == 0 && len(details.AwayPlayerStats) == 0 {
+		return ""
+	}
+
+	var lines []string
+	lines = append(lines, "")
+	lines = append(lines, neonHeaderStyle.Render("Box Score"))
+	lines = append(lines, "")
+
+	// Column widths for the two-column layout
+	halfW := contentWidth / 2
+	colName := halfW - 20 // player name
+	if colName < 10 {
+		colName = 10
+	}
+
+	// Sub-header: team names
+	homeTeam := details.HomeTeam.ShortName
+	if homeTeam == "" {
+		homeTeam = details.HomeTeam.Name
+	}
+	awayTeam := details.AwayTeam.ShortName
+	if awayTeam == "" {
+		awayTeam = details.AwayTeam.Name
+	}
+
+	homeHdr := lipgloss.NewStyle().Width(halfW).Foreground(neonCyan).Bold(true).Render(homeTeam)
+	awayHdr := lipgloss.NewStyle().Width(halfW).Foreground(neonGray).Bold(true).Render(awayTeam)
+	lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top, homeHdr, awayHdr))
+
+	// Column legend
+	legend := fmt.Sprintf("%-*s  %3s %3s %3s %5s", colName, "Player", "PTS", "REB", "AST", "FG")
+	homeColHdr := neonLabelStyle.Render(legend)
+	awayColHdr := neonLabelStyle.Render(legend)
+	lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.NewStyle().Width(halfW).Render(homeColHdr),
+		lipgloss.NewStyle().Width(halfW).Render(awayColHdr),
+	))
+
+	// Rows
+	maxRows := 8
+	homeRows := details.HomePlayerStats
+	awayRows := details.AwayPlayerStats
+	if len(homeRows) > maxRows {
+		homeRows = homeRows[:maxRows]
+	}
+	if len(awayRows) > maxRows {
+		awayRows = awayRows[:maxRows]
+	}
+
+	rowCount := len(homeRows)
+	if len(awayRows) > rowCount {
+		rowCount = len(awayRows)
+	}
+
+	for i := 0; i < rowCount; i++ {
+		homeCell := strings.Repeat(" ", halfW)
+		awayCell := strings.Repeat(" ", halfW)
+
+		if i < len(homeRows) {
+			homeCell = renderPlayerRow(homeRows[i], colName, halfW, neonCyan)
+		}
+		if i < len(awayRows) {
+			awayCell = renderPlayerRow(awayRows[i], colName, halfW, neonGray)
+		}
+		lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top, homeCell, awayCell))
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, lines...)
+}
+
+// renderPlayerRow renders a single player stat line for the box score.
+func renderPlayerRow(p api.PlayerStatLine, colName, width int, nameColor lipgloss.TerminalColor) string {
+	// Truncate name
+	name := p.Name
+	if len(name) > colName {
+		name = name[:colName-1] + "…"
+	}
+
+	// FG string e.g. "9/18" (+ 3s if any)
+	fg := fmt.Sprintf("%d/%d", p.FGM, p.FGA)
+	if p.FG3M > 0 {
+		fg = fmt.Sprintf("%s+%d3", fg, p.FG3M)
+	}
+
+	row := fmt.Sprintf("%-*s  %3d %3d %3d %5s",
+		colName, name,
+		p.Points, p.Rebounds, p.Assists, fg,
+	)
+
+	styledName := lipgloss.NewStyle().Foreground(nameColor).Render(name)
+	rest := fmt.Sprintf("  %3d %3d %3d %5s", p.Points, p.Rebounds, p.Assists, fg)
+	_ = row
+	full := styledName + rest
+	return lipgloss.NewStyle().Width(width).Render(full)
 }

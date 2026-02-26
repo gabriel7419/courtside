@@ -215,7 +215,7 @@ func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable 
 		isDevBuild:             isDevBuild,
 		newVersionAvailable:    newVersionAvailable,
 		appVersion:             appVersion,
-		nbaClient:              nba.NewClient(),
+		nbaClient:              selectNBAClient(useMockData),
 		parser:                 nba.NewLiveUpdateParser(),
 		redditClient:           redditClient,
 		goalLinks:              make(map[reddit.GoalLinkKey]*reddit.GoalLink),
@@ -322,4 +322,13 @@ func (m model) getHeaderContentHeight() int {
 // Init initializes the application.
 func (m model) Init() tea.Cmd {
 	return tea.Batch(m.spinner.Tick, ui.SpinnerTick())
+}
+
+// selectNBAClient returns a MockClient for offline/development mode,
+// or a real Client when the NBA Stats API should be used.
+func selectNBAClient(useMock bool) *nba.Client {
+	// NOTE: MockClient also satisfies api.Client, but nbaClient field is *nba.Client.
+	// We store useMockData on the model and check it in commands.go to switch data sources.
+	_ = useMock // see commands.go fetchStatsDayData / fetchLiveBatchData for mock handling
+	return nba.NewClient()
 }

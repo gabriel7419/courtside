@@ -261,6 +261,9 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 	var statsResp boxScoreTraditionalResponse
 	if err := c.do(ctx, statsURL, &statsResp); err == nil {
 		details.Statistics = parseTeamStats(statsResp, details.HomeTeam.ID)
+		home, away := parsePlayerStats(statsResp, details.HomeTeam.ID)
+		details.HomePlayerStats = home
+		details.AwayPlayerStats = away
 	}
 
 	c.cache.SetDetails(matchID, details)
@@ -525,6 +528,66 @@ func parseTeamStats(resp boxScoreTraditionalResponse, homeTeamID int) []api.Matc
 		stat("fg3a", "3P Attempted", formatInt(homeRow, "FG3A"), formatInt(awayRow, "FG3A")),
 		stat("fta", "FT Attempted", formatInt(homeRow, "FTA"), formatInt(awayRow, "FTA")),
 	}
+}
+
+// parsePlayerStats converts boxscoretraditionalv2 → home and away []api.PlayerStatLine.
+// Players with 0 minutes (DNP) are excluded. Results sorted by points descending.
+func parsePlayerStats(resp boxScoreTraditionalResponse, homeTeamID int) (home, away []api.PlayerStatLine) {
+	ps := findResultSet(resp.ResultSets, "PlayerStats")
+	if len(ps.RowSet) == 0 {
+		return nil, nil
+	}
+
+	// sortByPts is a small insertion sort — player lists are short (≤15 per team)
+	sortByPts := func(players []api.PlayerStatLine) {
+		for i := 1; i < len(players); i++ {
+			p := players[i]
+			j := i - 1
+			for j >= 0 && players[j].Points < p.Points {
+				players[j+1] = players[j]
+				j--
+			}
+			players[j+1] = p
+		}
+	}
+
+	for _, row := range ps.RowSet {
+		// Skip DNP rows (MINUTES is null or "0:00")
+		mins := ps.colStr(row, "MIN")
+		if mins == "" || mins == "0:00" || mins == "null" {
+			continue
+		}
+
+		teamID := ps.colInt(row, "TEAM_ID")
+
+		line := api.PlayerStatLine{
+			Name:      ps.colStr(row, "PLAYER_NAME"),
+			Position:  ps.colStr(row, "START_POSITION"),
+			Minutes:   mins,
+			Points:    ps.colInt(row, "PTS"),
+			Rebounds:  ps.colInt(row, "REB"),
+			Assists:   ps.colInt(row, "AST"),
+			Steals:    ps.colInt(row, "STL"),
+			Blocks:    ps.colInt(row, "BLK"),
+			Turnovers: ps.colInt(row, "TO"),
+			FGM:       ps.colInt(row, "FGM"),
+			FGA:       ps.colInt(row, "FGA"),
+			FG3M:      ps.colInt(row, "FG3M"),
+			FTM:       ps.colInt(row, "FTM"),
+			FTA:       ps.colInt(row, "FTA"),
+			PlusMinus: ps.colInt(row, "PLUS_MINUS"),
+		}
+
+		if teamID == homeTeamID {
+			home = append(home, line)
+		} else {
+			away = append(away, line)
+		}
+	}
+
+	sortByPts(home)
+	sortByPts(away)
+	return home, away
 }
 
 // appendQuarterScores grows the slice to store Q1..Q4 for the given team slot (0=home, 1=away).

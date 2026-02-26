@@ -133,8 +133,29 @@ type MatchDetails struct {
 
 	// NBA-specific fields
 	// QuarterScores stores scores per period as alternating pairs: [Q1home, Q1away, Q2home, Q2away, ...]
-	QuarterScores []int `json:"quarter_scores,omitempty"`
-	Overtime      bool  `json:"overtime,omitempty"`
+	QuarterScores   []int            `json:"quarter_scores,omitempty"`
+	Overtime        bool             `json:"overtime,omitempty"`
+	HomePlayerStats []PlayerStatLine `json:"home_player_stats,omitempty"`
+	AwayPlayerStats []PlayerStatLine `json:"away_player_stats,omitempty"`
+}
+
+// PlayerStatLine holds individual player statistics from an NBA box score.
+type PlayerStatLine struct {
+	Name      string `json:"name"`
+	Position  string `json:"position,omitempty"` // G, F, C
+	Minutes   string `json:"minutes,omitempty"`  // "32:14"
+	Points    int    `json:"points"`
+	Rebounds  int    `json:"rebounds"`
+	Assists   int    `json:"assists"`
+	Steals    int    `json:"steals"`
+	Blocks    int    `json:"blocks"`
+	Turnovers int    `json:"turnovers"`
+	FGM       int    `json:"fgm"`  // field goals made
+	FGA       int    `json:"fga"`  // field goals attempted
+	FG3M      int    `json:"fg3m"` // 3-pointers made
+	FTM       int    `json:"ftm"`  // free throws made
+	FTA       int    `json:"fta"`  // free throws attempted
+	PlusMinus int    `json:"plus_minus"`
 }
 
 // MatchHighlight represents a highlight video link.

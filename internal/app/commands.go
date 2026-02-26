@@ -29,7 +29,7 @@ func fetchLiveBatchData(client *nba.Client, useMockData bool, batchIndex int) te
 				return liveBatchDataMsg{
 					batchIndex: batchIndex,
 					isLast:     isLast,
-					matches:    data.MockLiveMatches(),
+					matches:    data.MockNBALiveMatches(),
 				}
 			}
 			return liveBatchDataMsg{batchIndex: batchIndex, isLast: isLast}
@@ -59,7 +59,7 @@ func fetchLiveBatchData(client *nba.Client, useMockData bool, batchIndex int) te
 func scheduleLiveRefresh(client *nba.Client, useMockData bool) tea.Cmd {
 	return tea.Tick(LiveRefreshInterval, func(t time.Time) tea.Msg {
 		if useMockData {
-			return liveRefreshMsg{matches: data.MockLiveMatches()}
+			return liveRefreshMsg{matches: data.MockNBALiveMatches()}
 		}
 		if client == nil {
 			return liveRefreshMsg{}
@@ -99,7 +99,7 @@ func fetchMatchDetails(client *nba.Client, matchID int, useMockData bool) tea.Cm
 func fetchMatchDetailsForceRefresh(client *nba.Client, matchID int, useMockData bool) tea.Cmd {
 	return func() tea.Msg {
 		if useMockData {
-			details, _ := data.MockMatchDetails(matchID)
+			details, _ := data.MockNBAMatchDetails(matchID)
 			return matchDetailsMsg{details: details}
 		}
 
@@ -135,7 +135,7 @@ func schedulePollSpinnerHide() tea.Cmd {
 func fetchPollMatchDetails(client *nba.Client, matchID int, useMockData bool) tea.Cmd {
 	return func() tea.Msg {
 		if useMockData {
-			details, _ := data.MockMatchDetails(matchID)
+			details, _ := data.MockNBAMatchDetails(matchID)
 			return matchDetailsMsg{details: details}
 		}
 
@@ -159,11 +159,18 @@ func fetchStatsDayData(client *nba.Client, useMockData bool, dayIndex int, total
 
 		if useMockData {
 			if isToday {
+				// Use NBA live + finished games as "today's finished games"
+				var finished []api.Match
+				for _, m := range data.MockNBALiveMatches() {
+					if m.Status == api.MatchStatusFinished {
+						finished = append(finished, m)
+					}
+				}
 				return statsDayDataMsg{
 					dayIndex: dayIndex,
 					isToday:  true,
 					isLast:   isLast,
-					finished: data.MockFinishedMatches(),
+					finished: finished,
 				}
 			}
 			return statsDayDataMsg{dayIndex: dayIndex, isToday: false, isLast: isLast}

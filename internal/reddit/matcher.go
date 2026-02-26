@@ -3,31 +3,31 @@ package reddit
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
 
-// Matcher provides loose matching for Reddit goal post titles.
-// Example titles:
-//   - "Wolves [3] - 0 West Ham - Mateus Mane 41'"
-//   - "Manchester United [2] - 1 Liverpool - Marcus Rashford 67'"
-//   - "Barcelona 0 - [1] Real Madrid - Vinicius Jr 89'"
+// NBA r/nba highlight post titles come in many formats, e.g.:
+//   - "Jayson Tatum 31 PTS - Full Game Highlights | Celtics vs Heat"
+//   - "LeBron James [32/8/7] - Game Highlights | Lakers vs Warriors"
+//   - "Boston Celtics vs Miami Heat - Full Game Highlights | Feb 25, 2026"
+//   - "Celtics [87] - Heat [79] 3rd Quarter Highlights"
+//
+// Unlike soccer, NBA highlights don't encode a "minute" — they encode quarter
+// and total points. The matcher therefore focuses on:
+//   1. Team names in the title  (primary signal)
+//   2. Scorer name              (high value for scoring-event highlights)
+//   3. Score proximity          (exact score match is a good tiebreaker)
+//   4. Date proximity           (post must be within ±24h of the game)
 
-// findBestMatch finds the best matching search result for a goal.
-// Uses loose matching: checks for team names, minute, and date proximity.
+// findBestMatch finds the best matching Reddit search result for a basketball event.
 func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 	if len(results) == 0 {
 		return nil
 	}
 
-	// Normalize team names for comparison
 	homeNorm := normalizeTeamName(goal.HomeTeam)
 	awayNorm := normalizeTeamName(goal.AwayTeam)
-	minutePattern := buildMinutePattern(goal)
-
-	// Build score pattern for validation (e.g., "1-0", "2-1", etc.)
-	scorePattern := buildScorePattern(goal.HomeScore, goal.AwayScore)
 
 	var bestMatch *SearchResult
 	bestScore := 0
@@ -38,63 +38,66 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 
 		score := 0
 
-		// Filter by date: post must be within reasonable time of match
-		// Allow posts from 1 day before to 2 days after the match
+		// ── 1. Date filter ─────────────────────────────────────────────
 		if !goal.MatchTime.IsZero() {
 			postDate := result.CreatedAt
 			matchStart := goal.MatchTime.Add(-24 * time.Hour)
 			matchEnd := goal.MatchTime.Add(48 * time.Hour)
 
 			if postDate.Before(matchStart) || postDate.After(matchEnd) {
-				continue // Post is outside the valid date range
+				continue // outside valid window
 			}
-
-			// Bonus for posts very close to match time (within 12 hours)
+			// Bonus for posts very close to game time
 			if postDate.After(goal.MatchTime.Add(-6*time.Hour)) && postDate.Before(goal.MatchTime.Add(12*time.Hour)) {
 				score += 5
 			}
 		}
 
-		// Check for team names (required)
+		// ── 2. Team names ──────────────────────────────────────────────
 		homeFound := containsTeamName(titleLower, homeNorm)
 		awayFound := containsTeamName(titleLower, awayNorm)
 
 		if !homeFound && !awayFound {
-			continue // Must have at least one team name
+			continue // at least one team required
 		}
-
 		if homeFound {
 			score += 10
 		}
 		if awayFound {
 			score += 10
 		}
-
-		// Check for minute (highly valuable, but strict)
-		minuteFound := minutePattern.MatchString(result.Title)
-		if minuteFound {
-			score += 25
+		if homeFound && awayFound {
+			score += 5 // bonus for both teams present
 		}
 
-		// Check for score match (required for high confidence)
-		scoreMatch := scorePattern.MatchString(result.Title)
-		if scoreMatch {
-			score += 20 // High bonus for score match
-		} else {
-			// If score doesn't match, heavily penalize this result
-			score -= 15
-		}
-
-		// Check for scorer name if available
+		// ── 3. Scorer / player name ────────────────────────────────────
+		// For NBA, the scorer name (e.g., "Tatum", "LeBron") is often the
+		// most prominent signal in the title.
 		if goal.ScorerName != "" {
 			scorerNorm := normalizeName(goal.ScorerName)
 			if containsName(titleLower, scorerNorm) {
-				score += 15
+				score += 20 // High bonus — player name in title is very specific
 			}
 		}
 
-		// Prefer higher Reddit score (upvotes) as tiebreaker
-		score += min(result.Score/100, 5) // Max 5 points from upvotes
+		// ── 4. Score proximity ─────────────────────────────────────────
+		// NBA highlight titles sometimes embed the final score like
+		// "Celtics [87] - Heat [79]" or "BOS 112, PHI 104".
+		// We check for both the home and away score as integers.
+		if scoreFoundInTitle(titleLower, goal.HomeScore, goal.AwayScore) {
+			score += 15
+		}
+
+		// ── 5. Keyword bonuses ─────────────────────────────────────────
+		if strings.Contains(titleLower, "highlight") {
+			score += 3
+		}
+		if strings.Contains(titleLower, "game winner") || strings.Contains(titleLower, "buzzer") {
+			score += 5
+		}
+
+		// ── 6. Upvote tiebreaker ───────────────────────────────────────
+		score += min(result.Score/200, 5) // max 5 pts from upvotes
 
 		if score > bestScore {
 			bestScore = score
@@ -102,77 +105,63 @@ func findBestMatch(results []SearchResult, goal GoalInfo) *SearchResult {
 		}
 	}
 
-	// Require minimum score for a match, with higher requirement for score matches
-	minScore := 45 // Require score match + minute match + team names
+	// NBA highlight matching is softer than soccer goals — we only need
+	// at least one team name plus either a player or score match.
+	const minScore = 20
 	if bestScore < minScore {
 		return nil
 	}
-
 	return bestMatch
 }
 
-// normalizeTeamName converts a team name to a normalized form for matching.
+// scoreFoundInTitle checks if both the home and away score appear in the title
+// as standalone integers (e.g., "87" and "79" in "Celtics [87] - Heat [79]").
+func scoreFoundInTitle(title string, home, away int) bool {
+	if home <= 0 && away <= 0 {
+		return false
+	}
+	homePattern := fmt.Sprintf(`\b%d\b`, home)
+	awayPattern := fmt.Sprintf(`\b%d\b`, away)
+	homeRe := regexp.MustCompile(homePattern)
+	awayRe := regexp.MustCompile(awayPattern)
+	return homeRe.MatchString(title) && awayRe.MatchString(title)
+}
+
+// normalizeTeamName converts an NBA team name to a normalized form for matching.
+// Handles abbreviations ("BOS", "LAL"), city names, and nicknames.
 func normalizeTeamName(name string) string {
-	// Convert to lowercase
 	norm := strings.ToLower(name)
 
-	// Remove common prefixes (e.g., "fc barcelona" -> "barcelona")
-	prefixes := []string{"fc ", "cf ", "sc ", "afc ", "ac ", "as "}
-	for _, prefix := range prefixes {
-		norm = strings.TrimPrefix(norm, prefix)
+	// Remove generic prefixes/suffixes not useful for matching
+	prefixes := []string{"the "}
+	for _, p := range prefixes {
+		norm = strings.TrimPrefix(norm, p)
 	}
 
-	// Remove common suffixes
-	suffixes := []string{" fc", " cf", " sc", " afc", " united", " city"}
-	for _, suffix := range suffixes {
-		norm = strings.TrimSuffix(norm, suffix)
-	}
-
-	// Remove special characters
+	// Keep only alphanumeric + spaces
 	norm = regexp.MustCompile(`[^a-z0-9\s]`).ReplaceAllString(norm, "")
-
 	return strings.TrimSpace(norm)
 }
 
 // normalizeName converts a player name to a normalized form for matching.
 func normalizeName(name string) string {
 	norm := strings.ToLower(name)
-	// Remove special characters but keep spaces
 	norm = regexp.MustCompile(`[^a-z\s]`).ReplaceAllString(norm, "")
 	return strings.TrimSpace(norm)
 }
 
-// containsTeamName checks if a title contains a team name (or part of it).
-// Normalizes the title first to handle variations like "FC Barcelona" vs "Barcelona".
+// containsTeamName checks if a title contains a team name or any significant word from it.
 func containsTeamName(title, teamNorm string) bool {
-	// Normalize the title for comparison (handles "FC Barcelona" -> "barcelona")
 	titleNorm := normalizeTeamName(title)
 
-	// First try exact match on normalized title
 	if strings.Contains(titleNorm, teamNorm) {
 		return true
 	}
 
-	// Try matching individual words (for multi-word team names)
+	// Match individual words (e.g., "celtics", "warriors", "lakers")
 	words := strings.Fields(teamNorm)
-	if len(words) > 1 {
-		// Check if significant words are present
-		for _, word := range words {
-			if len(word) > 3 && strings.Contains(titleNorm, word) {
-				return true
-			}
-		}
-	}
-
-	// Also check original title (case-insensitive) for better coverage
-	titleLower := strings.ToLower(title)
-	if strings.Contains(titleLower, teamNorm) {
-		return true
-	}
-
-	// Check individual words in original title too
 	for _, word := range words {
-		if len(word) > 3 && strings.Contains(titleLower, word) {
+		if len(word) > 3 && strings.Contains(titleNorm, word) {
 			return true
 		}
 	}
@@ -180,14 +169,12 @@ func containsTeamName(title, teamNorm string) bool {
 	return false
 }
 
-// containsName checks if a title contains a player name.
+// containsName checks if a title contains a player name (full name or last name).
 func containsName(title, nameNorm string) bool {
-	// First try full name
 	if strings.Contains(title, nameNorm) {
 		return true
 	}
-
-	// Try matching last name (usually more unique)
+	// Try matching just the last name (most recognizable for NBA stars)
 	parts := strings.Fields(nameNorm)
 	if len(parts) > 0 {
 		lastName := parts[len(parts)-1]
@@ -195,73 +182,7 @@ func containsName(title, nameNorm string) bool {
 			return true
 		}
 	}
-
 	return false
-}
-
-// buildMinutePattern creates a regex to match a minute in various formats.
-// Matches: "41'", "41" (at word boundary), "41+2'" etc.
-// Also checks +/-2 minute tolerance for better matching.
-// If DisplayMinute contains stoppage time (e.g., "45+2'"), also searches for total time (47').
-func buildMinutePattern(goal GoalInfo) *regexp.Regexp {
-	minute := goal.Minute
-	// Create patterns for minute ±2 tolerance
-	var patterns []string
-	for offset := -2; offset <= 2; offset++ {
-		targetMinute := minute + offset
-		if targetMinute >= 0 {
-			patterns = append(patterns, `\b`+strconv.Itoa(targetMinute)+`(\+\d+)?'?\b`)
-		}
-	}
-
-	// If DisplayMinute contains stoppage time, also search for total time
-	// e.g., "45+2'" should also match "47'" (45 + 2 = 47)
-	if goal.DisplayMinute != "" {
-		// Parse stoppage time like "45+2'" to find total time
-		if plusIndex := strings.Index(goal.DisplayMinute, "+"); plusIndex > 0 {
-			baseMinuteStr := goal.DisplayMinute[:plusIndex]
-			if baseMinute, err := strconv.Atoi(baseMinuteStr); err == nil {
-				// Look for patterns after + (like +2, +3, etc.)
-				plusPart := goal.DisplayMinute[plusIndex+1:]
-				if quoteIndex := strings.Index(plusPart, "'"); quoteIndex > 0 {
-					addedTimeStr := plusPart[:quoteIndex]
-					if addedTime, err := strconv.Atoi(addedTimeStr); err == nil {
-						totalTime := baseMinute + addedTime
-						// Add patterns for the total time ±1 tolerance
-						for offset := -1; offset <= 1; offset++ {
-							targetTotal := totalTime + offset
-							if targetTotal >= 0 && targetTotal != baseMinute { // Avoid duplicate with base minute
-								patterns = append(patterns, `\b`+strconv.Itoa(targetTotal)+`'?\b`)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Join with OR operator
-	patternStr := strings.Join(patterns, "|")
-	compiled, err := regexp.Compile(patternStr)
-	if err != nil {
-		// Fallback to original single minute pattern
-		return regexp.MustCompile(`\b` + strconv.Itoa(minute) + `(\+\d+)?'?\b`)
-	}
-	return compiled
-}
-
-// buildScorePattern creates a regex to match the score at the time of goal.
-// Matches various score formats like "1-0", "2-1", "[1-0]", etc.
-func buildScorePattern(homeScore, awayScore int) *regexp.Regexp {
-	scoreStr := fmt.Sprintf("%d-%d", homeScore, awayScore)
-	// Match score in various formats: "1-0", "[1-0]", "(1-0)", "1-0", etc.
-	patternStr := `[\[\(\s]*` + regexp.QuoteMeta(scoreStr) + `[\]\)\s]*`
-	compiled, err := regexp.Compile(patternStr)
-	if err != nil {
-		// Fallback to exact match
-		return regexp.MustCompile(regexp.QuoteMeta(scoreStr))
-	}
-	return compiled
 }
 
 // MatchConfidence represents how confident we are in a match.
@@ -274,7 +195,7 @@ const (
 	ConfidenceHigh   MatchConfidence = 3
 )
 
-// CalculateConfidence returns the confidence level for a match.
+// CalculateConfidence returns the confidence level for a Reddit result match.
 func CalculateConfidence(result SearchResult, goal GoalInfo) MatchConfidence {
 	titleLower := strings.ToLower(result.Title)
 	homeNorm := normalizeTeamName(goal.HomeTeam)
@@ -282,12 +203,18 @@ func CalculateConfidence(result SearchResult, goal GoalInfo) MatchConfidence {
 
 	hasHome := containsTeamName(titleLower, homeNorm)
 	hasAway := containsTeamName(titleLower, awayNorm)
-	hasMinute := buildMinutePattern(goal).MatchString(result.Title)
 
-	if hasHome && hasAway && hasMinute {
+	hasPlayer := false
+	if goal.ScorerName != "" {
+		hasPlayer = containsName(titleLower, normalizeName(goal.ScorerName))
+	}
+
+	hasScore := scoreFoundInTitle(titleLower, goal.HomeScore, goal.AwayScore)
+
+	if hasHome && hasAway && (hasPlayer || hasScore) {
 		return ConfidenceHigh
 	}
-	if (hasHome || hasAway) && hasMinute {
+	if (hasHome || hasAway) && (hasPlayer || hasScore) {
 		return ConfidenceMedium
 	}
 	if hasHome || hasAway {
