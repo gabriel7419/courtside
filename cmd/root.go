@@ -8,10 +8,10 @@ import (
 	"runtime"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gabriel7419/courtside/internal/app"
 	"github.com/gabriel7419/courtside/internal/data"
 	"github.com/gabriel7419/courtside/internal/version"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )
 
@@ -24,9 +24,9 @@ var versionFlag bool
 var debugFlag bool
 
 var rootCmd = &cobra.Command{
-	Use:   "golazo",
-	Short: "The beautiful game in your terminal",
-	Long:  `A minimal TUI for following football matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.`,
+	Use:   "courtside",
+	Short: "NBA live scores in your terminal",
+	Long:  `A minimal TUI for following NBA games in real-time. Get live scores, quarter-by-quarter breakdowns, play-by-play events, box scores, and standings directly in your terminal.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if versionFlag {
 			version.Print(Version)

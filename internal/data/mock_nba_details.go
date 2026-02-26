@@ -85,6 +85,21 @@ func buildNBADetails(m api.Match) *api.MatchDetails {
 			26, 22, // Q4
 		}
 		d.Events = nbaMockFinishedEvents(m)
+		d.HomePlayerStats = nbaMockPlayers(m.HomeTeam, []playerSeed{
+			{"D. Lillard", "G", "36:12", 34, 4, 7, 3, 9, 10, 3, 1, 8},
+			{"K. Middleton", "F", "30:44", 18, 5, 4, 6, 8, 0, 0, 2, 2},
+			{"B. Lopez", "C", "28:55", 14, 9, 2, 5, 8, 2, 0, 4, 0},
+			{"K. Portis", "F", "24:18", 12, 8, 1, 4, 9, 1, 1, 2, 0},
+			{"M. Beauchamp", "G", "22:00", 10, 3, 3, 4, 7, 1, 0, 2, 0},
+			{"J. Crowder", "F", "18:30", 8, 4, 2, 3, 6, 0, 1, 1, 0},
+		})
+		d.AwayPlayerStats = nbaMockPlayers(m.AwayTeam, []playerSeed{
+			{"J. Embiid", "C", "34:02", 32, 11, 5, 11, 20, 2, 2, 4, 0},
+			{"T. Maxey", "G", "36:18", 24, 3, 8, 8, 18, 4, 0, 2, 0},
+			{"O. Melton", "G", "28:00", 16, 4, 3, 6, 13, 3, 1, 2, 0},
+			{"K. Lowry", "G", "24:44", 10, 2, 7, 3, 8, 1, 0, 1, 0},
+			{"P. Reed", "F", "20:10", 8, 6, 1, 3, 7, 0, 1, 2, 0},
+		})
 
 	case 9004: // DEN 98 - OKC 115 (Final)
 		d.QuarterScores = []int{
@@ -94,6 +109,20 @@ func buildNBADetails(m api.Match) *api.MatchDetails {
 			24, 30, // Q4
 		}
 		d.Events = nbaMockFinishedEvents(m)
+		d.HomePlayerStats = nbaMockPlayers(m.HomeTeam, []playerSeed{
+			{"N. Jokic", "C", "35:30", 28, 14, 9, 10, 18, 2, 2, 3, 0},
+			{"J. Murray", "G", "33:00", 22, 5, 7, 8, 16, 3, 0, 4, 0},
+			{"M. Porter Jr.", "F", "28:10", 16, 7, 2, 5, 11, 4, 0, 2, 0},
+			{"K. Caldwell-Pope", "G", "24:00", 12, 3, 3, 4, 8, 2, 0, 2, 0},
+			{"A. Gordon", "F", "26:20", 10, 6, 2, 3, 7, 0, 1, 2, 0},
+		})
+		d.AwayPlayerStats = nbaMockPlayers(m.AwayTeam, []playerSeed{
+			{"S. Gilgeous-Alexander", "G", "36:00", 35, 5, 6, 13, 24, 5, 1, 4, 0},
+			{"J. Williams", "F", "32:14", 22, 8, 4, 7, 14, 4, 1, 2, 0},
+			{"C. Holmgren", "C", "30:00", 18, 10, 3, 6, 12, 2, 4, 2, 0},
+			{"L. Dort", "G", "28:00", 14, 4, 2, 5, 12, 3, 0, 2, 0},
+			{"I. Joe", "G", "22:10", 12, 3, 4, 4, 9, 2, 0, 1, 0},
+		})
 	}
 
 	return d
@@ -196,3 +225,35 @@ func nbaMockAttendance(id int) int {
 }
 
 func strp(s string) *string { return &s }
+
+// playerSeed holds the raw data for one mock player row.
+// Fields: name, pos, min, pts, reb, ast, fgm, fga, fg3m, ftm, fta, plusMinus
+type playerSeed struct {
+	name, pos, min                          string
+	pts, reb, ast, fgm, fga, fg3m, ftm, fta int
+	pm                                      int
+}
+
+// nbaMockPlayers converts a slice of playerSeeds to []api.PlayerStatLine
+// assigned to the given team.
+func nbaMockPlayers(team api.Team, seeds []playerSeed) []api.PlayerStatLine {
+	lines := make([]api.PlayerStatLine, 0, len(seeds))
+	for _, s := range seeds {
+		lines = append(lines, api.PlayerStatLine{
+			Name:      s.name,
+			Position:  s.pos,
+			Minutes:   s.min,
+			Points:    s.pts,
+			Rebounds:  s.reb,
+			Assists:   s.ast,
+			FGM:       s.fgm,
+			FGA:       s.fga,
+			FG3M:      s.fg3m,
+			FTM:       s.ftm,
+			FTA:       s.fta,
+			PlusMinus: s.pm,
+		})
+		_ = team // team association is implicit via HomePlayerStats / AwayPlayerStats
+	}
+	return lines
+}

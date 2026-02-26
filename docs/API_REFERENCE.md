@@ -1,10 +1,10 @@
-# NBA Stats API — Referência
+# NBA Stats API — Reference
 
-Referência rápida para os endpoints usados no Courtside. Para contexto geral, veja [FORK_PLAN.md](FORK_PLAN.md).
+Quick reference for the endpoints used in Courtside. For architectural context, see [FORK_PLAN.md](FORK_PLAN.md).
 
-## Headers Obrigatórios
+## Required Headers
 
-Todas as requisições precisam destes headers — sem eles a API retorna 403:
+All requests to `stats.nba.com` require these headers — without them the API returns 403:
 
 ```http
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
@@ -18,189 +18,103 @@ Origin: https://www.nba.com
 
 ## Endpoints
 
-### 1. Scoreboard — Jogos do Dia
+### 1. Scoreboard — Daily Games
 
 ```
 GET https://stats.nba.com/stats/scoreboard?GameDate=YYYY-MM-DD&LeagueID=00
 ```
 
-**Parâmetros:**
-- `GameDate` — data no formato `YYYY-MM-DD`
-- `LeagueID` — sempre `00` para NBA
+**Parameters:**
+- `GameDate` — date in `YYYY-MM-DD` format
+- `LeagueID` — always `00` for NBA
 
-**Resposta (simplificada):**
+**Key result sets:** `GameHeader`, `LineScore`
 
-```json
-{
-  "resultSets": [
-    {
-      "name": "GameHeader",
-      "headers": [
-        "GAME_DATE_EST", "GAME_SEQUENCE", "GAME_ID",
-        "GAME_STATUS_ID", "GAME_STATUS_TEXT", "GAMECODE",
-        "HOME_TEAM_ID", "VISITOR_TEAM_ID", "SEASON",
-        "LIVE_PERIOD", "LIVE_PC_TIME", "NATL_TV_BROADCASTER_ABBREVIATION",
-        "LIVE_PERIOD_TIME_BCAST", "WH_STATUS"
-      ],
-      "rowSet": [
-        ["2026-02-25T00:00:00", 1, "0022300789", 2, "Live",
-         "20260225/LALGWS", 1610612744, 1610612747, "2023",
-         3, "PT2M34.00S", "TNT", "Q3 2:34", 1]
-      ]
-    },
-    {
-      "name": "LineScore",
-      "headers": [
-        "GAME_DATE_EST", "GAME_ID", "TEAM_ID", "TEAM_ABBREVIATION",
-        "TEAM_CITY_NAME", "TEAM_WINS_LOSSES",
-        "PTS_QTR1", "PTS_QTR2", "PTS_QTR3", "PTS_QTR4",
-        "PTS_OT1", "PTS", "FG_PCT", "FT_PCT", "FG3_PCT",
-        "AST", "REB", "TOV"
-      ],
-      "rowSet": [
-        ["2026-02-25T00:00:00", "0022300789", 1610612747,
-         "LAL", "Los Angeles", "35-20",
-         28, 24, 22, null, null, 74,
-         0.488, 0.800, 0.400, 18, 32, 8]
-      ]
-    }
-  ]
-}
-```
+**GameHeader fields:**
 
-**Campos relevantes do GameHeader:**
-
-| Campo | Tipo | Descrição |
+| Field | Type | Description |
 |---|---|---|
-| `GAME_ID` | string | ID único, ex: `"0022300789"` |
-| `GAME_STATUS_ID` | int | `1` = agendado, `2` = ao vivo, `3` = finalizado |
+| `GAME_ID` | string | Unique game ID, e.g. `"0022300789"` |
+| `GAME_STATUS_ID` | int | `1` = scheduled, `2` = live, `3` = final |
 | `GAME_STATUS_TEXT` | string | `"Live"`, `"Final"`, `"9:00 PM ET"` |
-| `LIVE_PERIOD` | int | Quarter atual (1–4, 5+ = OT) |
-| `LIVE_PC_TIME` | string | Tempo restante no formato ISO, ex: `"PT2M34.00S"` |
-| `LIVE_PERIOD_TIME_BCAST` | string | Formato broadcast, ex: `"Q3 2:34"` |
+| `HOME_TEAM_ID` | int | Home team ID |
+| `VISITOR_TEAM_ID` | int | Away team ID |
+| `LIVE_PERIOD` | int | Current quarter (1–4, 5+ = OT) |
+| `LIVE_PC_TIME` | string | Remaining time in ISO format, e.g. `"PT2M34.00S"` |
+| `LIVE_PERIOD_TIME_BCAST` | string | Broadcast format, e.g. `"Q3 2:34"` |
 
-**Campos relevantes do LineScore:**
+**LineScore fields:**
 
-| Campo | Descrição |
+| Field | Description |
 |---|---|
-| `PTS_QTR1..4` | Pontos por quarter (null se ainda não jogado) |
-| `PTS` | Total de pontos |
-| `FG_PCT` | % Field Goals (0.488 = 48.8%) |
-| `FG3_PCT` | % 3-Pointers |
-| `FT_PCT` | % Free Throws |
-| `AST` | Assistências |
-| `REB` | Rebotes totais |
+| `TEAM_ID` | Team identifier |
+| `PTS_QTR1..4` | Points per quarter (null if not yet played) |
+| `PTS` | Total points |
+| `FG_PCT` | Field goal % (e.g. `0.488` = 48.8%) |
+| `FG3_PCT` | 3-pointer % |
+| `FT_PCT` | Free throw % |
+| `AST` | Assists |
+| `REB` | Total rebounds |
 | `TOV` | Turnovers |
 
 ---
 
-### 2. Box Score Summary — Resumo do Jogo
+### 2. Box Score Summary
 
 ```
 GET https://stats.nba.com/stats/boxscoresummaryv2?GameID=0022300789
 ```
 
-Retorna `resultSets` com: `GameSummary`, `LineScore`, `LastMeeting`, `SeasonSeries`, `Officials`, `GameInfo`.
+Returns: `GameSummary`, `LineScore`, `LastMeeting`, `SeasonSeries`, `Officials`, `GameInfo`.
 
-**Campos úteis do GameInfo:**
-
-```json
-{
-  "name": "GameInfo",
-  "headers": ["GAME_DATE", "ATTENDANCE", "GAME_TIME"],
-  "rowSet": [["2026-02-25T00:00:00", "18064", "2:23"]]
-}
-```
+**GameInfo fields:** `GAME_DATE`, `ATTENDANCE`, `GAME_TIME`
 
 ---
 
-### 3. Box Score Traditional — Estatísticas Completas
+### 3. Box Score Traditional — Full Stats
 
 ```
 GET https://stats.nba.com/stats/boxscoretraditionalv2?GameID=0022300789&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0
 ```
 
-Retorna `PlayerStats` e `TeamStats`.
+Returns `PlayerStats` and `TeamStats` result sets.
 
-**Exemplo — um jogador:**
+**Player row example:** LeBron James — 36 min, 12/20 FG, 3/7 3P, 5/6 FT, 9 REB, 7 AST, 32 PTS, +5
 
-```json
-{
-  "name": "PlayerStats",
-  "headers": [
-    "GAME_ID", "TEAM_ID", "TEAM_ABBREVIATION", "TEAM_CITY",
-    "PLAYER_ID", "PLAYER_NAME", "START_POSITION", "COMMENT",
-    "MIN", "FGM", "FGA", "FG_PCT", "FG3M", "FG3A", "FG3_PCT",
-    "FTM", "FTA", "FT_PCT", "OREB", "DREB", "REB",
-    "AST", "STL", "BLK", "TO", "PF", "PTS", "PLUS_MINUS"
-  ],
-  "rowSet": [
-    ["0022300789", 1610612747, "LAL", "Los Angeles",
-     2544, "LeBron James", "F", "",
-     "36:24", 12, 20, 0.600, 3, 7, 0.429,
-     5, 6, 0.833, 1, 8, 9, 7, 2, 1, 3, 2, 32, 5]
-  ]
-}
-```
+**Field glossary:**
 
-**Siglas:**
-
-| Sigla | Significado |
+| Field | Meaning |
 |---|---|
-| `MIN` | Minutos jogados (`"MM:SS"`) |
+| `MIN` | Minutes played (`"MM:SS"`) |
 | `FGM` / `FGA` | Field Goals Made / Attempted |
-| `FG_PCT` | % Field Goals |
+| `FG_PCT` | Field goal percentage |
 | `FG3M` / `FG3A` | 3-Pointers Made / Attempted |
-| `FG3_PCT` | % 3-Pointers |
+| `FG3_PCT` | 3-point percentage |
 | `FTM` / `FTA` | Free Throws Made / Attempted |
-| `FT_PCT` | % Free Throws |
-| `OREB` / `DREB` | Rebotes Ofensivos / Defensivos |
-| `REB` | Rebotes totais |
-| `AST` | Assistências |
-| `STL` | Steals (roubos de bola) |
-| `BLK` | Blocks (tocos) |
+| `FT_PCT` | Free throw percentage |
+| `OREB` / `DREB` | Offensive / Defensive Rebounds |
+| `REB` | Total rebounds |
+| `AST` | Assists |
+| `STL` | Steals |
+| `BLK` | Blocks |
 | `TO` | Turnovers |
-| `PF` | Faltas pessoais |
-| `PTS` | Pontos |
-| `PLUS_MINUS` | Diferença de pontos quando em quadra |
+| `PF` | Personal fouls |
+| `PTS` | Points |
+| `PLUS_MINUS` | Point differential while on court |
 
 ---
 
-### 4. Play-by-Play — Eventos ao Vivo
+### 4. Play-by-Play
 
 ```
 GET https://stats.nba.com/stats/playbyplayv2?GameID=0022300789&StartPeriod=1&EndPeriod=10
 ```
 
-**Exemplo de resposta:**
+Returns a `PlayByPlay` result set. One row per event.
 
-```json
-{
-  "resultSets": [{
-    "name": "PlayByPlay",
-    "headers": [
-      "GAME_ID", "EVENTNUM", "EVENTMSGTYPE", "EVENTMSGACTIONTYPE",
-      "PERIOD", "WCTIMESTRING", "PCTIMESTRING",
-      "HOMEDESCRIPTION", "NEUTRALDESCRIPTION", "VISITORDESCRIPTION",
-      "SCORE", "SCOREMARGIN"
-    ],
-    "rowSet": [
-      ["0022300789", 2, 2, 1, 1, "7:00 PM", "11:42",
-       null, null, "Curry 25' 3PT Jump Shot (3 PTS)", "0-3", "-3"],
-      ["0022300789", 3, 1, 1, 1, "7:00 PM", "11:18",
-       "James 2' Driving Layup (2 PTS) (Russell assists)", null, null, "2-3", "-1"],
-      ["0022300789", 4, 6, 1, 1, "7:01 PM", "10:55",
-       null, null, "Curry Personal Foul (1 PF)", null, null],
-      ["0022300789", 5, 9, 0, 1, "7:02 PM", "9:30",
-       null, "Warriors Timeout: Regular", null, null, null]
-    ]
-  }]
-}
-```
+**EVENTMSGTYPE values:**
 
-**EVENTMSGTYPE:**
-
-| Valor | Evento |
+| Value | Event |
 |---|---|
 | 1 | Field Goal Made |
 | 2 | Field Goal Missed |
@@ -216,19 +130,34 @@ GET https://stats.nba.com/stats/playbyplayv2?GameID=0022300789&StartPeriod=1&End
 | 12 | Start of Period |
 | 13 | End of Period |
 
+The description is in `HOMEDESCRIPTION` or `VISITORDESCRIPTION` depending on which team the event belongs to.
+
 ---
 
-## Boas Práticas
+### 5. League Standings
 
-**Rate limiting:** A API não documenta limites, mas 200–300ms entre requests é razoável.
+```
+GET https://stats.nba.com/stats/leaguestandingsv3?LeagueID=00&Season=2025-26&SeasonType=Regular+Season
+```
 
-**Cache:**
-```
-Jogos ao vivo:      5–10s
-Scoreboard geral:   30s
-Jogos finalizados:  permanente (nunca mudam)
-Estatísticas:       1min (jogo ao vivo)
-```
+Returns a `Standings` result set with one row per team.
+
+**Key fields:** `TeamAbbreviation`, `TeamCity`, `TeamName`, `Conference`, `ConferenceRank`, `WINS`, `LOSSES`, `WinPCT`, `ConferenceGamesBack`, `CurrentStreak`
+
+---
+
+## Best Practices
+
+**Rate limiting:** The API does not document limits. Use 200–300ms between requests to avoid throttling.
+
+**Caching strategy:**
+
+| Data | TTL |
+|---|---|
+| Live game data | 10 seconds |
+| Daily scoreboard | 30 seconds |
+| Finished games | 24 hours (scores never change) |
+| Player stats | 1 minute (live), 24 hours (final) |
 
 ---
 
@@ -236,41 +165,61 @@ Estatísticas:       1min (jogo ao vivo)
 
 ```
 0022300789
-│││││└───── Número sequencial
-││││└────── Tipo: 2 = Regular Season, 4 = Playoffs
-│││└─────── Temporada: 23 = 2023-24
-││└──────── Século (0 = 2000s)
-│└───────── Sempre 0
-└────────── Sempre 0
+│││││└───── Sequential game number
+││││└────── Type: 2 = Regular Season, 4 = Playoffs
+│││└─────── Season: 23 = 2023-24
+││└──────── Century (0 = 2000s)
+│└───────── Always 0
+└────────── Always 0
 ```
-
-## Team IDs Principais
-
-| Time | ID |
-|---|---|
-| Lakers | 1610612747 |
-| Warriors | 1610612744 |
-| Celtics | 1610612738 |
-| Heat | 1610612748 |
-| Bulls | 1610612741 |
-| Knicks | 1610612752 |
-| 76ers | 1610612755 |
-
-Lista completa: [swar/nba_api](https://github.com/swar/nba_api/blob/master/src/nba_api/stats/library/data.py)
 
 ---
 
-## Testando
+## All 30 Team IDs
+
+| Team | ID |
+|---|---|
+| Atlanta Hawks | 1610612737 |
+| Boston Celtics | 1610612738 |
+| Cleveland Cavaliers | 1610612739 |
+| New Orleans Pelicans | 1610612740 |
+| Chicago Bulls | 1610612741 |
+| Dallas Mavericks | 1610612742 |
+| Denver Nuggets | 1610612743 |
+| Golden State Warriors | 1610612744 |
+| Houston Rockets | 1610612745 |
+| LA Clippers | 1610612746 |
+| Los Angeles Lakers | 1610612747 |
+| Miami Heat | 1610612748 |
+| Milwaukee Bucks | 1610612749 |
+| Minnesota Timberwolves | 1610612750 |
+| Brooklyn Nets | 1610612751 |
+| New York Knicks | 1610612752 |
+| Orlando Magic | 1610612753 |
+| Indiana Pacers | 1610612754 |
+| Philadelphia 76ers | 1610612755 |
+| Phoenix Suns | 1610612756 |
+| Portland Trail Blazers | 1610612757 |
+| Sacramento Kings | 1610612758 |
+| San Antonio Spurs | 1610612759 |
+| Oklahoma City Thunder | 1610612760 |
+| Toronto Raptors | 1610612761 |
+| Utah Jazz | 1610612762 |
+| Memphis Grizzlies | 1610612763 |
+| Washington Wizards | 1610612764 |
+| Detroit Pistons | 1610612765 |
+| Charlotte Hornets | 1610612766 |
+
+Full reference: [swar/nba_api](https://github.com/swar/nba_api/blob/master/src/nba_api/stats/library/data.py)
+
+---
+
+## Testing
 
 ```bash
-# Script de teste incluído
 go run scripts/test_nba_api.go --endpoint=scoreboard --date=2026-02-25
 go run scripts/test_nba_api.go --endpoint=summary --game=0022300789
 go run scripts/test_nba_api.go --endpoint=traditional --game=0022300789
 go run scripts/test_nba_api.go --endpoint=playbyplay --game=0022300789
-
-# curl direto
-curl -H "User-Agent: Mozilla/5.0" \
-     -H "Referer: https://www.nba.com/" \
-     "https://stats.nba.com/stats/scoreboard?GameDate=2026-02-25&LeagueID=00"
+go run scripts/test_nba_api.go --endpoint=standings --season=2025-26
 ```

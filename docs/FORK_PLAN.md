@@ -1,22 +1,22 @@
-# NBA Fork — Plano de Implementação
+# NBA Fork — Implementation Plan
 
-Documento de referência para adaptar o Golazo (futebol) para NBA. Consulte o [FORK_SUMMARY.md](FORK_SUMMARY.md) para uma visão mais curta.
+Reference document for the Courtside NBA adaptation of Golazo. For a shorter overview, see [FORK_SUMMARY.md](FORK_SUMMARY.md).
 
 ---
 
-## Arquitetura Atual (Golazo)
+## Original Architecture (Golazo)
 
 ```
 golazo/
 ├── cmd/                    # CLI (Cobra)
 ├── internal/
-│   ├── api/               # Interface sport-agnostic
-│   ├── fotmob/            # Cliente FotMob API
-│   ├── reddit/            # Busca de highlights
-│   ├── ui/                # Interface TUI (Bubble Tea)
-│   ├── data/              # Settings e storage
-│   ├── notify/            # Notificações desktop
-│   ├── app/               # Lógica principal
+│   ├── api/               # Sport-agnostic interface
+│   ├── fotmob/            # FotMob API client
+│   ├── reddit/            # r/soccer highlight search
+│   ├── ui/                # TUI (Bubble Tea)
+│   ├── data/              # Settings, storage, mock data
+│   ├── notify/            # Desktop notifications
+│   ├── app/               # Core application logic
 │   ├── constants/
 │   ├── debug/
 │   └── version/
@@ -25,26 +25,26 @@ golazo/
 └── docs/
 ```
 
-Pontos positivos da arquitetura: interface `api.Client` bem abstraída, cache com TTL, rate limiting configurável, UI desacoplada da lógica de dados.
+Key design advantages: well-abstracted `api.Client` interface, TTL-based cache, configurable rate limiting, and UI fully decoupled from data logic.
 
 ---
 
-## Estrutura Alvo (Courtside)
+## Target Architecture (Courtside)
 
 ```
 courtside/
-├── cmd/                    # Manter, só renomear comandos
+├── cmd/                    # Renamed: courtside CLI
 ├── internal/
-│   ├── api/               # Adaptar tipos para NBA (Game, Quarter, etc.)
-│   ├── nba/               # NOVO — cliente NBA Stats API
-│   ├── reddit/            # Adaptar (r/nba em vez de r/soccer)
-│   ├── ui/                # Adaptar labels (Quarter, Timeout, Clock)
-│   ├── data/              # Adaptar (conferências e divisões)
-│   ├── notify/            # Manter sem alterações
-│   ├── app/               # Adaptar lógica para NBA
-│   ├── constants/         # Adaptar
-│   ├── debug/             # Manter
-│   └── version/           # Manter
+│   ├── api/               # Extended with NBA fields (Quarter, Clock, PlayerStatLine)
+│   ├── nba/               # NEW — NBA Stats API client + mock client
+│   ├── reddit/            # Adapted: r/nba Highlight posts
+│   ├── ui/                # Adapted: quarter/clock display, box score, standings
+│   ├── data/              # NBA mock data (matches, details, player stats)
+│   ├── notify/            # NBA event labels (BASKET, 3PT, FT)
+│   ├── app/               # NBA client wired in, mock data branches
+│   ├── constants/         # NBA terminology (Games, Final, Conference, Arena)
+│   ├── debug/             # Unchanged
+│   └── version/           # Unchanged
 ├── assets/
 ├── scripts/
 └── docs/
@@ -54,220 +54,145 @@ courtside/
 
 ## API
 
-### Opção recomendada: NBA Stats API
+### NBA Stats API (primary)
 
 - **Base URL:** `https://stats.nba.com/stats/`
-- **Custo:** Gratuita
-- **Autenticação:** Nenhuma (mas requer headers específicos)
-- **Rate limiting:** Não documentado — usar 200ms entre requests
+- **Cost:** Free
+- **Auth:** None (but requires specific request headers)
+- **Rate limiting:** Undocumented — use 200–300ms between requests
 
-**Endpoints principais:**
+**Endpoints used:**
 
 ```
-GET /scoreboard?GameDate=YYYY-MM-DD&LeagueID=00       → jogos do dia
-GET /boxscoresummaryv2?GameID=<id>                     → resumo do jogo
-GET /boxscoretraditionalv2?GameID=<id>                 → estatísticas completas
-GET /playbyplayv2?GameID=<id>&StartPeriod=1&EndPeriod=10 → play-by-play
+GET /scoreboard?GameDate=YYYY-MM-DD&LeagueID=00        → daily scoreboard
+GET /boxscoresummaryv2?GameID=<id>                      → game summary
+GET /boxscoretraditionalv2?GameID=<id>&...              → player + team stats
+GET /playbyplayv2?GameID=<id>&StartPeriod=1&EndPeriod=10 → play-by-play events
+GET /leaguestandingsv3?LeagueID=00&Season=<year>&...    → standings
 ```
 
-Ver detalhes em [API_REFERENCE.md](API_REFERENCE.md).
-
-### Alternativa: ESPN API (não oficial)
-
-`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/`
-
-JSON mais limpo, mas pode mudar sem aviso.
+See full details in [API_REFERENCE.md](API_REFERENCE.md).
 
 ---
 
-## Mapeamento: Futebol → NBA
+## Football → NBA Mapping
 
-### Estrutura de Dados
+### Data Structures
 
-| Futebol (Golazo) | NBA (Courtside) |
+| Football (Golazo) | NBA (Courtside) |
 |---|---|
-| `Match` | `Game` |
-| `League` | `Conference` / `Division` |
-| `Round` | `GameNumber` / `Date` |
+| `Match` | `Match` (reused, extended) |
+| `League` | Conference (`"NBA"`) |
+| `Round` | Intentionally unused |
 | `LiveTime` (`"45+2"`) | `Quarter` + `Clock` (`"Q3 2:34"`) |
-| `MatchStatus` | `GameStatus` |
+| Half-time score | Quarter-by-quarter scores (`QuarterScores []int`) |
+| `GoalsFor` / `GoalsAgainst` | `PointsFor` / `PointsAgainst` (win%) |
 
-### Eventos
+### Events
 
-| Futebol | NBA |
+| Football | NBA |
 |---|---|
 | Goal | Field Goal (2pt/3pt), Free Throw |
 | Yellow Card | Personal Foul / Technical Foul |
 | Red Card | Ejection / Flagrant Foul |
 | Substitution | Substitution |
-| N/A | Timeout |
+| — | Timeout |
 
-### Estatísticas
+### Statistics
 
-| Futebol | NBA |
+| Football | NBA |
 |---|---|
 | Possession | Time of Possession |
-| Shots | FGA (Field Goal Attempts) |
-| Shots on Target | FGM (Field Goals Made) |
+| Shots / Shots on Target | FGA / FGM |
 | Passes | Assists |
-| N/A | Rebounds (OFF/DEF) |
-| N/A | Steals, Blocks, Turnovers |
-| N/A | FG%, 3PT%, FT% |
+| — | Rebounds (OREB/DREB) |
+| — | Steals, Blocks, Turnovers |
+| — | FG%, 3P%, FT% |
 
 ---
 
-## Adaptações de Código
+## Implementation Checklist
 
-### `internal/api/types.go`
+### Phase 0 — Preparation ✅
+- [x] Implementation plan
+- [x] README and CONTRIBUTING adapted  
+- [x] API reference documentation
+- [x] API test script
 
-```go
-// Antes (futebol)
-type Match struct {
-    ID        int
-    League    League
-    HomeTeam  Team
-    AwayTeam  Team
-    Status    MatchStatus
-    HomeScore *int
-    AwayScore *int
-    MatchTime *time.Time
-    LiveTime  *string   // "45+2", "HT", "FT"
-    Round     string
-}
+### Phase 1 — Setup ✅
+- [x] Rename Go module (`go.mod`)
+- [x] Update all internal imports
+- [x] Confirm clean `go build`
 
-// Depois (NBA)
-type Game struct {
-    ID           int
-    Conference   string
-    HomeTeam     Team
-    AwayTeam     Team
-    Status       GameStatus
-    HomeScore    *int
-    AwayScore    *int
-    GameTime     *time.Time
-    Quarter      *int      // 1-4, 5+ para OT
-    Clock        *string   // "2:34"
-    IsPlayoffs   bool
-    SeriesStatus *string   // "Series tied 2-2"
-}
-```
+### Phase 2 — Data Layer ✅
+- [x] Extend `internal/api/types.go` (Quarter, Clock, PlayerStatLine, LeagueTableEntry)
+- [x] Create `internal/nba/` package (client, types, cache, ratelimit, live parser)
+- [x] Implement `MatchesByDate`, `MatchDetails`, `LiveMatches`, `LeagueTable`
+- [x] Parse box score stats (`BoxScoreTraditionalV2` → team + player stats)
+- [x] Adapt `internal/data/settings.go` (NBA conferences and teams)
+- [x] Add NBA mock data for offline development (`internal/nba/mock_client.go`)
 
-### `internal/data/settings.go`
+### Phase 3 — Core Functionality ✅
+- [x] `MatchesByDate` — daily scoreboard
+- [x] `MatchDetails` — box score summary + play-by-play
+- [x] Cache and rate limiting (TTL: live 10s, finished 24h)
 
-```go
-// Antes (50+ ligas de futebol)
-var AllSupportedLeagues = map[string][]LeagueInfo{
-    RegionEurope:  {{ID: 47, Name: "Premier League"}, ...},
-    RegionAmerica: {{ID: 268, Name: "Brasileirão"}, ...},
-}
+### Phase 4 — Live Data ✅
+- [x] 30-second polling for live games
+- [x] Map NBA events (field goals, fouls, timeouts, free throws)
+- [x] Real-time score and quarter updates
+- [x] `LiveUpdateParser` for play-by-play streaming
 
-// Depois (conferências NBA)
-const (
-    ConferenceEastern = "Eastern"
-    ConferenceWestern = "Western"
-)
+### Phase 5 — UI ✅
+- [x] Quarter/clock display (`"Q3 2:34"`)
+- [x] High-score formatting (NBA scores 90–130)
+- [x] Standings dialog: W/L/PCT/GB/Streak columns, East/West sub-headers
+- [x] Box score section: two-column player stats (PTS/REB/AST/FG)
+- [x] Statistics dialog: FG%, 3P%, FT%, REB, AST, STL, BLK, TO, PF
 
-var AllSupportedConferences = map[string][]ConferenceInfo{
-    ConferenceEastern: {
-        {Division: "Atlantic", Teams: []string{"Celtics", "Nets", "Knicks", "76ers", "Raptors"}},
-        {Division: "Central", Teams: []string{"Bulls", "Cavaliers", "Pistons", "Pacers", "Bucks"}},
-        {Division: "Southeast", Teams: []string{"Hawks", "Hornets", "Heat", "Magic", "Wizards"}},
-    },
-    ConferenceWestern: {
-        {Division: "Northwest", Teams: []string{"Nuggets", "Timberwolves", "Thunder", "Blazers", "Jazz"}},
-        {Division: "Pacific", Teams: []string{"Warriors", "Clippers", "Lakers", "Suns", "Kings"}},
-        {Division: "Southwest", Teams: []string{"Mavericks", "Rockets", "Grizzlies", "Pelicans", "Spurs"}},
-    },
-}
-```
+### Phase 6 — Extra Features ✅
+- [x] Highlights via r/nba (Highlight flair, NBA title matching)
+- [x] NBA scoring notifications (BASKET +2, 3PT +3, FT +1, DisplayMinute)
+- [x] Standings (conference standings from `leaguestandingsv3`)
+- [x] Offline / API-unavailable mode (`--mock` flag)
 
-### Reddit Integration
-
-```
-Antes: subreddit r/soccer, keywords: "goal", "GOAL"
-Depois: subreddit r/nba, keywords: "highlight", "HIGHLIGHT", "clutch"
-```
-
----
-
-## Checklist de Implementação
-
-### Fase 0: Preparação (completo)
-- [x] Plano de implementação
-- [x] README e CONTRIBUTING adaptados
-- [x] Documentação da API
-- [x] Script de teste da API
-
-### Fase 1: Setup Inicial
-- [ ] Renomear módulo em `go.mod`
-- [ ] Atualizar imports em todos os arquivos `.go`
-- [ ] Confirmar `go build` sem erros
-
-### Fase 2: Camada de Dados
-- [ ] Adaptar `internal/api/types.go` (Game, Quarter, Clock)
-- [ ] Criar estrutura `internal/nba/`
-- [ ] Implementar `internal/nba/client.go`
-- [ ] Implementar `internal/nba/types.go` (mapeamento API → tipos Go)
-- [ ] Adaptar `internal/data/settings.go` (conferências NBA)
-
-### Fase 3: Funcionalidade Básica
-- [ ] Implementar `GamesByDate()` — jogos do dia
-- [ ] Implementar `GameDetails()` — detalhes de um jogo
-- [ ] Testar cache e rate limiting
-- [ ] Testes unitários básicos
-
-### Fase 4: Dados ao Vivo
-- [ ] Polling para jogos ao vivo
-- [ ] Mapear eventos (field goals, faltas, timeouts)
-- [ ] Atualização de placar em tempo real
-- [ ] Testar com jogos reais
-
-### Fase 5: UI
-- [ ] Atualizar labels (Quarter, Clock, etc.)
-- [ ] Adaptar formatação de placar (scores altos: 98-105)
-- [ ] Atualizar dialogs de estatísticas e standings
-
-### Fase 6: Features Extras
-- [ ] Highlights via r/nba
-- [ ] Notificações adaptadas para NBA
-- [ ] Tabela de playoffs
-- [ ] Filtros por conferência
-
-### Fase 7: Release
-- [ ] README final com screenshots
-- [ ] Scripts de instalação adaptados
+### Phase 7 — Release 🔜
+- [ ] README final screenshots
+- [ ] Build and install scripts for Courtside
 - [ ] Release v1.0.0
 
 ---
 
-## Testando a API Manualmente
+## Testing the API
 
 ```bash
-# Jogos de hoje
-curl -H "User-Agent: Mozilla/5.0" \
-     -H "Referer: https://www.nba.com/" \
-     "https://stats.nba.com/stats/scoreboard?GameDate=2026-02-25&LeagueID=00"
-
-# Detalhes de um jogo específico
-curl -H "User-Agent: Mozilla/5.0" \
-     -H "Referer: https://www.nba.com/" \
-     "https://stats.nba.com/stats/boxscoresummaryv2?GameID=0022300789"
-```
-
-Ou use o script incluído:
-
-```bash
+# Daily scoreboard
 go run scripts/test_nba_api.go --endpoint=scoreboard --date=2026-02-25
+
+# Game summary
+go run scripts/test_nba_api.go --endpoint=summary --game=0022300789
+
+# Box score with player stats
+go run scripts/test_nba_api.go --endpoint=traditional --game=0022300789
+
+# Play-by-play
+go run scripts/test_nba_api.go --endpoint=playbyplay --game=0022300789
+
+# Conference standings
+go run scripts/test_nba_api.go --endpoint=standings --season=2025-26
+
+# Offline mode (no network required)
+go run ./cmd/courtside --mock
 ```
 
 ---
 
-## Recursos
+## Resources
 
-- [swar/nba_api](https://github.com/swar/nba_api) — referência Python muito completa
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea) — framework TUI
-- [Golazo original](https://github.com/0xjuanma/golazo) — base deste projeto
+- [swar/nba_api](https://github.com/swar/nba_api) — comprehensive Python reference for NBA Stats API
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea) — TUI framework used by Courtside
+- [Original Golazo](https://github.com/0xjuanma/golazo) — base project this was forked from
 
 ---
 
-*Baseado em [Golazo](https://github.com/0xjuanma/golazo) por [@0xjuanma](https://github.com/0xjuanma) — Licença MIT*
+*Based on [Golazo](https://github.com/0xjuanma/golazo) by [@0xjuanma](https://github.com/0xjuanma) — MIT License*

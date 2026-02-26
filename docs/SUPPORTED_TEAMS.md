@@ -1,11 +1,10 @@
-# NBA Teams
+# Supported Teams
 
-Courtside supports all 30 NBA teams, organized by conference and division. You can filter by conference in the Settings view.
+Courtside supports all 30 NBA teams, organised by conference and division.
 
 ## Eastern Conference
 
 ### Atlantic Division
-
 | Team | Abbreviation |
 |---|---|
 | Boston Celtics | BOS |
@@ -15,7 +14,6 @@ Courtside supports all 30 NBA teams, organized by conference and division. You c
 | Toronto Raptors | TOR |
 
 ### Central Division
-
 | Team | Abbreviation |
 |---|---|
 | Chicago Bulls | CHI |
@@ -25,7 +23,6 @@ Courtside supports all 30 NBA teams, organized by conference and division. You c
 | Milwaukee Bucks | MIL |
 
 ### Southeast Division
-
 | Team | Abbreviation |
 |---|---|
 | Atlanta Hawks | ATL |
@@ -34,10 +31,11 @@ Courtside supports all 30 NBA teams, organized by conference and division. You c
 | Orlando Magic | ORL |
 | Washington Wizards | WAS |
 
+---
+
 ## Western Conference
 
 ### Northwest Division
-
 | Team | Abbreviation |
 |---|---|
 | Denver Nuggets | DEN |
@@ -47,7 +45,6 @@ Courtside supports all 30 NBA teams, organized by conference and division. You c
 | Utah Jazz | UTA |
 
 ### Pacific Division
-
 | Team | Abbreviation |
 |---|---|
 | Golden State Warriors | GSW |
@@ -57,7 +54,6 @@ Courtside supports all 30 NBA teams, organized by conference and division. You c
 | Sacramento Kings | SAC |
 
 ### Southwest Division
-
 | Team | Abbreviation |
 |---|---|
 | Dallas Mavericks | DAL |
@@ -66,6 +62,6 @@ Courtside supports all 30 NBA teams, organized by conference and division. You c
 | New Orleans Pelicans | NOP |
 | San Antonio Spurs | SAS |
 
-## WNBA — Coming Soon
+---
 
-WNBA support is planned for a future release.
+Team selection is available in the **Settings** view (`s` key from the main menu). Filter by conference or toggle individual teams to customise which games appear in your feed.

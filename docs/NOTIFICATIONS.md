@@ -1,41 +1,51 @@
-# Notifications
+# Courtside — Desktop Notifications Setup
 
-Score notifications require one-time setup depending on your operating system.
+Courtside sends a desktop notification (with a beep) whenever a live game scores.
 
 ## macOS
 
-Notifications use AppleScript, which requires enabling permissions for Script Editor:
-
-1. Open **Script Editor** (`/Applications/Utilities/Script Editor.app`)
-2. Run this to test: `display notification "test" with title "test"`
-3. Go to **System Settings → Notifications → Script Editor**
-4. Enable notifications and set the alert style to "Banners"
+Notifications work out of the box — no extra setup needed.
 
 ## Linux
 
-Notifications require `libnotify`. Install it if not present:
+Install `libnotify`:
 
 ```bash
 # Debian/Ubuntu
-sudo apt install libnotify-bin
-
-# Fedora
-sudo dnf install libnotify
+sudo apt-get install libnotify-bin
 
 # Arch
 sudo pacman -S libnotify
+
+# Fedora
+sudo dnf install libnotify
 ```
 
 ## Windows
 
-Notifications work out of the box on Windows 10 and 11.
+Notifications are delivered via the Windows toast system. No additional packages required.
 
-## Notification Types
+---
 
-Courtside can notify you about:
+## Notification Format
 
-- Score changes during live games
-- End of quarter / halftime
-- Game tips off (optional)
+```
+🏀 Courtside!
 
-Configure which events trigger notifications in the **Settings** view.
+J. Tatum  Q3 4:52  [3PT +3 · BOS]
+BOS  89 - 79  MIA
+```
+
+**Event labels:**
+
+| Event | Label |
+|---|---|
+| 2-point field goal | `BASKET +2` |
+| 3-point field goal | `3PT +3` |
+| Free throw made | `FT +1` |
+
+---
+
+## Disabling Notifications
+
+Courtside does not yet have a UI toggle for notifications. To disable them, run the binary without a notification daemon present (Linux) or deny notification permissions (macOS/Windows system settings).
