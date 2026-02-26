@@ -256,6 +256,13 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 		}
 	}
 
+	// Fetch team box score stats (FG%, REB, AST, etc.) for all game states
+	statsURL := fmt.Sprintf("%s/boxscoretraditionalv2?GameID=%s&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0", c.baseURL, gameIDStr)
+	var statsResp boxScoreTraditionalResponse
+	if err := c.do(ctx, statsURL, &statsResp); err == nil {
+		details.Statistics = parseTeamStats(statsResp, details.HomeTeam.ID)
+	}
+
 	c.cache.SetDetails(matchID, details)
 	return details, nil
 }
@@ -458,6 +465,66 @@ func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
 	}
 
 	return details
+}
+
+// parseTeamStats converts a boxScoreTraditionalResponse to []api.MatchStatistic.
+// It reads the TeamStats resultSet which has one row per team, and produces
+// home/away labelled comparison stats for the UI statistics dialog.
+func parseTeamStats(resp boxScoreTraditionalResponse, homeTeamID int) []api.MatchStatistic {
+	ts := findResultSet(resp.ResultSets, "TeamStats")
+	if len(ts.RowSet) < 2 {
+		return nil // need at least 2 rows (home + away)
+	}
+
+	// Identify home vs away rows
+	var homeRow, awayRow []interface{}
+	for _, row := range ts.RowSet {
+		teamID := ts.colInt(row, "TEAM_ID")
+		if teamID == homeTeamID {
+			homeRow = row
+		} else {
+			awayRow = row
+		}
+	}
+	if homeRow == nil || awayRow == nil {
+		return nil
+	}
+
+	// formatPct renders a decimal like 0.512 as "51.2%"
+	formatPct := func(row []interface{}, field string) string {
+		v := ts.colFloat(row, field)
+		if v == 0 {
+			return "—"
+		}
+		return fmt.Sprintf("%.1f%%", v*100)
+	}
+
+	// formatInt renders an integer column
+	formatInt := func(row []interface{}, field string) string {
+		v := ts.colInt(row, field)
+		return fmt.Sprintf("%d", v)
+	}
+
+	stat := func(key, label, homeVal, awayVal string) api.MatchStatistic {
+		return api.MatchStatistic{Key: key, Label: label, HomeValue: homeVal, AwayValue: awayVal}
+	}
+
+	return []api.MatchStatistic{
+		stat("fg_pct", "FG%", formatPct(homeRow, "FG_PCT"), formatPct(awayRow, "FG_PCT")),
+		stat("fg3_pct", "3P%", formatPct(homeRow, "FG3_PCT"), formatPct(awayRow, "FG3_PCT")),
+		stat("ft_pct", "FT%", formatPct(homeRow, "FT_PCT"), formatPct(awayRow, "FT_PCT")),
+		stat("reb", "Rebounds", formatInt(homeRow, "REB"), formatInt(awayRow, "REB")),
+		stat("oreb", "Off. Rebounds", formatInt(homeRow, "OREB"), formatInt(awayRow, "OREB")),
+		stat("dreb", "Def. Rebounds", formatInt(homeRow, "DREB"), formatInt(awayRow, "DREB")),
+		stat("ast", "Assists", formatInt(homeRow, "AST"), formatInt(awayRow, "AST")),
+		stat("stl", "Steals", formatInt(homeRow, "STL"), formatInt(awayRow, "STL")),
+		stat("blk", "Blocks", formatInt(homeRow, "BLK"), formatInt(awayRow, "BLK")),
+		stat("tov", "Turnovers", formatInt(homeRow, "TO"), formatInt(awayRow, "TO")),
+		stat("pf", "Personal Fouls", formatInt(homeRow, "PF"), formatInt(awayRow, "PF")),
+		stat("fga", "FG Attempted", formatInt(homeRow, "FGA"), formatInt(awayRow, "FGA")),
+		stat("fg3a", "3P Attempted", formatInt(homeRow, "FG3A"), formatInt(awayRow, "FG3A")),
+		stat("fta", "FT Attempted", formatInt(homeRow, "FTA"), formatInt(awayRow, "FTA")),
+	}
 }
 
 // appendQuarterScores grows the slice to store Q1..Q4 for the given team slot (0=home, 1=away).
