@@ -48,7 +48,8 @@ func (c *Client) do(ctx context.Context, url string, dst interface{}) error {
 	}
 
 	// These headers are required — without them the API returns 403.
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Host", "stats.nba.com")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
 	req.Header.Set("Referer", "https://www.nba.com/")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
@@ -78,65 +79,18 @@ func (c *Client) MatchesByDate(ctx context.Context, date time.Time) ([]api.Match
 		return cached, nil
 	}
 
-	url := fmt.Sprintf("%s/scoreboard?GameDate=%s&LeagueID=00", c.baseURL, dateStr)
+	url := fmt.Sprintf("%s/scoreboardv3?GameDate=%s&LeagueID=00", c.baseURL, dateStr)
 
-	var resp scoreboardResponse
+	var resp scoreboardV3Response
 	if err := c.do(ctx, url, &resp); err != nil {
 		return nil, fmt.Errorf("fetch scoreboard for %s: %w", dateStr, err)
 	}
 
-	gameHeader := findResultSet(resp.ResultSets, "GameHeader")
-	lineScore := findResultSet(resp.ResultSets, "LineScore")
-
-	// Build a map of gameID → line scores (two rows per game: home + away)
-	type lineScoreRow struct {
-		teamID   int
-		teamAbbr string
-		teamName string
-		pts      *int
-		ptsQ1    *int
-		ptsQ2    *int
-		ptsQ3    *int
-		ptsQ4    *int
-		ptsOT1   *int
-	}
-	lineScores := make(map[string][]lineScoreRow)
-	for _, row := range lineScore.RowSet {
-		gameID := lineScore.colStr(row, "GAME_ID")
-		ls := lineScoreRow{
-			teamID:   lineScore.colInt(row, "TEAM_ID"),
-			teamAbbr: lineScore.colStr(row, "TEAM_ABBREVIATION"),
-			teamName: lineScore.colStr(row, "TEAM_CITY_NAME") + " " + lineScore.colStr(row, "TEAM_NICKNAME"),
-			pts:      lineScore.colIntPtr(row, "PTS"),
-			ptsQ1:    lineScore.colIntPtr(row, "PTS_QTR1"),
-			ptsQ2:    lineScore.colIntPtr(row, "PTS_QTR2"),
-			ptsQ3:    lineScore.colIntPtr(row, "PTS_QTR3"),
-			ptsQ4:    lineScore.colIntPtr(row, "PTS_QTR4"),
-			ptsOT1:   lineScore.colIntPtr(row, "PTS_OT1"),
-		}
-		lineScores[gameID] = append(lineScores[gameID], ls)
-	}
-
 	var matches []api.Match
-	for _, row := range gameHeader.RowSet {
-		gameID := gameHeader.colStr(row, "GAME_ID")
-		statusID := gameHeader.colInt(row, "GAME_STATUS_ID")
-		statusText := gameHeader.colStr(row, "GAME_STATUS_TEXT")
-		homeTeamID := gameHeader.colInt(row, "HOME_TEAM_ID")
-		livePeriod := gameHeader.colInt(row, "LIVE_PERIOD")
-		liveBcast := gameHeader.colStr(row, "LIVE_PERIOD_TIME_BCAST") // "Q3 2:34"
-
-		// Parse game time from GAME_DATE_EST
-		var matchTime *time.Time
-		if dateVal := gameHeader.colStr(row, "GAME_DATE_EST"); dateVal != "" {
-			if t, err := time.Parse("2006-01-02T15:04:05", dateVal); err == nil {
-				matchTime = &t
-			}
-		}
-
+	for _, g := range resp.Scoreboard.Games {
 		// Map API status to internal status
 		var status api.MatchStatus
-		switch statusID {
+		switch g.GameStatus {
 		case gameStatusScheduled:
 			status = api.MatchStatusNotStarted
 		case gameStatusLive:
@@ -147,76 +101,83 @@ func (c *Client) MatchesByDate(ctx context.Context, date time.Time) ([]api.Match
 			status = api.MatchStatusNotStarted
 		}
 
-		// Build team info from line scores
-		var homeTeam, awayTeam api.Team
-		var homeScore, awayScore *int
-		rows := lineScores[gameID]
-		for _, ls := range rows {
-			team := api.Team{
-				ID:        ls.teamID,
-				Name:      strings.TrimSpace(ls.teamName),
-				ShortName: ls.teamAbbr,
+		// Parse game time
+		var matchTime *time.Time
+		if g.GameTimeUTC != "" {
+			// try RFC3339 first, then "2006-01-02T15:04:05Z"
+			for _, layout := range []string{time.RFC3339, "2006-01-02T15:04:05Z"} {
+				if t, err := time.Parse(layout, g.GameTimeUTC); err == nil {
+					matchTime = &t
+					break
+				}
 			}
-			if ls.teamID == homeTeamID {
-				homeTeam = team
-				homeScore = ls.pts
-			} else {
-				awayTeam = team
-				awayScore = ls.pts
-			}
-		}
-
-		// Parse game ID to int (last 10 chars are the numeric ID)
-		// We use a simple hash since game IDs are strings like "0022300789"
-		numericID := gameHeader.colInt(row, "GAME_SEQUENCE")
-		if numericID == 0 {
-			numericID = simpleHash(gameID)
-		}
-
-		// Period + clock
-		var quarter *int
-		var clock *string
-		if livePeriod > 0 {
-			quarter = &livePeriod
-		}
-		if liveBcast != "" && status == api.MatchStatusLive {
-			clock = &liveBcast
 		}
 
 		// LiveTime: human-readable game time
 		var liveTime *string
-		if liveBcast != "" {
-			liveTime = &liveBcast
-		} else if status == api.MatchStatusFinished {
-			ft := "Final"
-			liveTime = &ft
+		if g.GameStatusText != "" {
+			s := strings.TrimSpace(g.GameStatusText)
+			liveTime = &s
 		}
 
-		// Conference from GAMECODE (e.g., "20260225/LALGWS")
-		league := api.League{
-			Name: "NBA",
+		// Quarter + clock
+		var quarter *int
+		var clock *string
+		if g.Period > 0 {
+			q := g.Period
+			quarter = &q
+		}
+		if g.GameClock != "" && status == api.MatchStatusLive {
+			clock = &g.GameClock
 		}
 
-		isOT := livePeriod > 4
+		// Teams and scores
+		homeScore := g.HomeTeam.Score
+		awayScore := g.AwayTeam.Score
+		homeTeam := api.Team{
+			ID:        g.HomeTeam.TeamID,
+			Name:      g.HomeTeam.TeamCity + " " + g.HomeTeam.TeamName,
+			ShortName: g.HomeTeam.TeamTricode,
+		}
+		awayTeam := api.Team{
+			ID:        g.AwayTeam.TeamID,
+			Name:      g.AwayTeam.TeamCity + " " + g.AwayTeam.TeamName,
+			ShortName: g.AwayTeam.TeamTricode,
+		}
+
+		numericID := simpleHash(g.GameID)
+		storeGameID(numericID, g.GameID)
+
+		// Series status for playoffs
+		var seriesStatus *string
+		if g.SeriesText != "" {
+			seriesStatus = &g.SeriesText
+		}
+
+		// Quick build of quarter scores from Periods (v3 includes them inline)
+		var quarterScores []int
+		if len(g.HomeTeam.Periods) > 0 {
+			for i := 0; i < len(g.HomeTeam.Periods) && i < len(g.AwayTeam.Periods); i++ {
+				quarterScores = append(quarterScores, g.HomeTeam.Periods[i].Score, g.AwayTeam.Periods[i].Score)
+			}
+		}
+		_ = quarterScores // used when building MatchDetails
 
 		m := api.Match{
 			ID:           numericID,
-			League:       league,
+			League:       api.League{Name: "NBA"},
 			HomeTeam:     homeTeam,
 			AwayTeam:     awayTeam,
 			Status:       status,
-			HomeScore:    homeScore,
-			AwayScore:    awayScore,
+			HomeScore:    &homeScore,
+			AwayScore:    &awayScore,
 			MatchTime:    matchTime,
 			LiveTime:     liveTime,
 			Quarter:      quarter,
 			Clock:        clock,
-			IsPlayoffs:   isPlayoffGame(gameID),
-			SeriesStatus: nil,
+			IsPlayoffs:   isPlayoffGame(g.GameID),
+			SeriesStatus: seriesStatus,
 		}
-		_ = isOT // will be used in MatchDetails
-		_ = statusText
-
 		matches = append(matches, m)
 	}
 
@@ -247,21 +208,21 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 
 	details := parseSummary(summaryResp, matchID)
 
-	// Fetch play-by-play for live games
+	// Fetch play-by-play for live games (v3)
 	if details.Status == api.MatchStatusLive {
-		pbpURL := fmt.Sprintf("%s/playbyplayv2?GameID=%s&StartPeriod=1&EndPeriod=10", c.baseURL, gameIDStr)
-		var pbpResp playByPlayResponse
+		pbpURL := fmt.Sprintf("%s/playbyplayv3?GameID=%s&StartPeriod=1&EndPeriod=10", c.baseURL, gameIDStr)
+		var pbpResp playByPlayV3Response
 		if err := c.do(ctx, pbpURL, &pbpResp); err == nil {
-			details.Events = parsePlayByPlay(pbpResp)
+			details.Events = parsePlayByPlayV3(pbpResp)
 		}
 	}
 
-	// Fetch team box score stats (FG%, REB, AST, etc.) for all game states
-	statsURL := fmt.Sprintf("%s/boxscoretraditionalv2?GameID=%s&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0", c.baseURL, gameIDStr)
-	var statsResp boxScoreTraditionalResponse
+	// Fetch team + player box score stats (v3)
+	statsURL := fmt.Sprintf("%s/boxscoretraditionalv3?GameID=%s&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0", c.baseURL, gameIDStr)
+	var statsResp boxScoreTraditionalV3Response
 	if err := c.do(ctx, statsURL, &statsResp); err == nil {
-		details.Statistics = parseTeamStats(statsResp, details.HomeTeam.ID)
-		home, away := parsePlayerStats(statsResp, details.HomeTeam.ID)
+		details.Statistics = parseTeamStatsV3(statsResp, details.HomeTeam.ID)
+		home, away := parsePlayerStatsV3(statsResp, details.HomeTeam.ID)
 		details.HomePlayerStats = home
 		details.AwayPlayerStats = away
 	}
@@ -470,19 +431,17 @@ func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
 	return details
 }
 
-// parseTeamStats converts a boxScoreTraditionalResponse to []api.MatchStatistic.
-// It reads the TeamStats resultSet which has one row per team, and produces
-// home/away labelled comparison stats for the UI statistics dialog.
-func parseTeamStats(resp boxScoreTraditionalResponse, homeTeamID int) []api.MatchStatistic {
+// parseTeamStatsV3 converts boxscoretraditionalv3 TeamStats resultSet → []api.MatchStatistic.
+// v3 uses camelCase field names (fieldGoalsPercentage, reboundsTotal, etc.).
+func parseTeamStatsV3(resp boxScoreTraditionalV3Response, homeTeamID int) []api.MatchStatistic {
 	ts := findResultSet(resp.ResultSets, "TeamStats")
 	if len(ts.RowSet) < 2 {
-		return nil // need at least 2 rows (home + away)
+		return nil
 	}
 
-	// Identify home vs away rows
 	var homeRow, awayRow []interface{}
 	for _, row := range ts.RowSet {
-		teamID := ts.colInt(row, "TEAM_ID")
+		teamID := ts.colInt(row, "teamId")
 		if teamID == homeTeamID {
 			homeRow = row
 		} else {
@@ -493,7 +452,6 @@ func parseTeamStats(resp boxScoreTraditionalResponse, homeTeamID int) []api.Matc
 		return nil
 	}
 
-	// formatPct renders a decimal like 0.512 as "51.2%"
 	formatPct := func(row []interface{}, field string) string {
 		v := ts.colFloat(row, field)
 		if v == 0 {
@@ -501,44 +459,40 @@ func parseTeamStats(resp boxScoreTraditionalResponse, homeTeamID int) []api.Matc
 		}
 		return fmt.Sprintf("%.1f%%", v*100)
 	}
-
-	// formatInt renders an integer column
 	formatInt := func(row []interface{}, field string) string {
-		v := ts.colInt(row, field)
-		return fmt.Sprintf("%d", v)
+		return fmt.Sprintf("%d", ts.colInt(row, field))
 	}
-
 	stat := func(key, label, homeVal, awayVal string) api.MatchStatistic {
 		return api.MatchStatistic{Key: key, Label: label, HomeValue: homeVal, AwayValue: awayVal}
 	}
 
 	return []api.MatchStatistic{
-		stat("fg_pct", "FG%", formatPct(homeRow, "FG_PCT"), formatPct(awayRow, "FG_PCT")),
-		stat("fg3_pct", "3P%", formatPct(homeRow, "FG3_PCT"), formatPct(awayRow, "FG3_PCT")),
-		stat("ft_pct", "FT%", formatPct(homeRow, "FT_PCT"), formatPct(awayRow, "FT_PCT")),
-		stat("reb", "Rebounds", formatInt(homeRow, "REB"), formatInt(awayRow, "REB")),
-		stat("oreb", "Off. Rebounds", formatInt(homeRow, "OREB"), formatInt(awayRow, "OREB")),
-		stat("dreb", "Def. Rebounds", formatInt(homeRow, "DREB"), formatInt(awayRow, "DREB")),
-		stat("ast", "Assists", formatInt(homeRow, "AST"), formatInt(awayRow, "AST")),
-		stat("stl", "Steals", formatInt(homeRow, "STL"), formatInt(awayRow, "STL")),
-		stat("blk", "Blocks", formatInt(homeRow, "BLK"), formatInt(awayRow, "BLK")),
-		stat("tov", "Turnovers", formatInt(homeRow, "TO"), formatInt(awayRow, "TO")),
-		stat("pf", "Personal Fouls", formatInt(homeRow, "PF"), formatInt(awayRow, "PF")),
-		stat("fga", "FG Attempted", formatInt(homeRow, "FGA"), formatInt(awayRow, "FGA")),
-		stat("fg3a", "3P Attempted", formatInt(homeRow, "FG3A"), formatInt(awayRow, "FG3A")),
-		stat("fta", "FT Attempted", formatInt(homeRow, "FTA"), formatInt(awayRow, "FTA")),
+		stat("fg_pct", "FG%", formatPct(homeRow, "fieldGoalsPercentage"), formatPct(awayRow, "fieldGoalsPercentage")),
+		stat("fg3_pct", "3P%", formatPct(homeRow, "threePointersPercentage"), formatPct(awayRow, "threePointersPercentage")),
+		stat("ft_pct", "FT%", formatPct(homeRow, "freeThrowsPercentage"), formatPct(awayRow, "freeThrowsPercentage")),
+		stat("reb", "Rebounds", formatInt(homeRow, "reboundsTotal"), formatInt(awayRow, "reboundsTotal")),
+		stat("oreb", "Off. Rebounds", formatInt(homeRow, "reboundsOffensive"), formatInt(awayRow, "reboundsOffensive")),
+		stat("dreb", "Def. Rebounds", formatInt(homeRow, "reboundsDefensive"), formatInt(awayRow, "reboundsDefensive")),
+		stat("ast", "Assists", formatInt(homeRow, "assists"), formatInt(awayRow, "assists")),
+		stat("stl", "Steals", formatInt(homeRow, "steals"), formatInt(awayRow, "steals")),
+		stat("blk", "Blocks", formatInt(homeRow, "blocks"), formatInt(awayRow, "blocks")),
+		stat("tov", "Turnovers", formatInt(homeRow, "turnovers"), formatInt(awayRow, "turnovers")),
+		stat("pf", "Personal Fouls", formatInt(homeRow, "foulsPersonal"), formatInt(awayRow, "foulsPersonal")),
+		stat("fga", "FG Attempted", formatInt(homeRow, "fieldGoalsAttempted"), formatInt(awayRow, "fieldGoalsAttempted")),
+		stat("fg3a", "3P Attempted", formatInt(homeRow, "threePointersAttempted"), formatInt(awayRow, "threePointersAttempted")),
+		stat("fta", "FT Attempted", formatInt(homeRow, "freeThrowsAttempted"), formatInt(awayRow, "freeThrowsAttempted")),
 	}
 }
 
-// parsePlayerStats converts boxscoretraditionalv2 → home and away []api.PlayerStatLine.
-// Players with 0 minutes (DNP) are excluded. Results sorted by points descending.
-func parsePlayerStats(resp boxScoreTraditionalResponse, homeTeamID int) (home, away []api.PlayerStatLine) {
+// parsePlayerStatsV3 converts boxscoretraditionalv3 PlayerStats → home and away []api.PlayerStatLine.
+// v3 uses camelCase field names. Players with no minutes (DNP) are excluded.
+// Results sorted by points descending.
+func parsePlayerStatsV3(resp boxScoreTraditionalV3Response, homeTeamID int) (home, away []api.PlayerStatLine) {
 	ps := findResultSet(resp.ResultSets, "PlayerStats")
 	if len(ps.RowSet) == 0 {
 		return nil, nil
 	}
 
-	// sortByPts is a small insertion sort — player lists are short (≤15 per team)
 	sortByPts := func(players []api.PlayerStatLine) {
 		for i := 1; i < len(players); i++ {
 			p := players[i]
@@ -552,30 +506,39 @@ func parsePlayerStats(resp boxScoreTraditionalResponse, homeTeamID int) (home, a
 	}
 
 	for _, row := range ps.RowSet {
-		// Skip DNP rows (MINUTES is null or "0:00")
-		mins := ps.colStr(row, "MIN")
-		if mins == "" || mins == "0:00" || mins == "null" {
+		// v3 uses "minutes" field ("PT36M24.00S" or "" for DNP)
+		mins := ps.colStr(row, "minutes")
+		if mins == "" || mins == "PT00M00.00S" {
 			continue
 		}
+		// Convert ISO duration "PT36M24.00S" → "36:24"
+		if mins != "" {
+			mins = formatISODuration(mins)
+		}
 
-		teamID := ps.colInt(row, "TEAM_ID")
+		teamID := ps.colInt(row, "teamId")
+		// v3 has firstName + familyName or nameI ("J. Tatum")
+		name := ps.colStr(row, "nameI")
+		if name == "" {
+			name = ps.colStr(row, "firstName") + " " + ps.colStr(row, "familyName")
+		}
 
 		line := api.PlayerStatLine{
-			Name:      ps.colStr(row, "PLAYER_NAME"),
-			Position:  ps.colStr(row, "START_POSITION"),
+			Name:      name,
+			Position:  ps.colStr(row, "position"),
 			Minutes:   mins,
-			Points:    ps.colInt(row, "PTS"),
-			Rebounds:  ps.colInt(row, "REB"),
-			Assists:   ps.colInt(row, "AST"),
-			Steals:    ps.colInt(row, "STL"),
-			Blocks:    ps.colInt(row, "BLK"),
-			Turnovers: ps.colInt(row, "TO"),
-			FGM:       ps.colInt(row, "FGM"),
-			FGA:       ps.colInt(row, "FGA"),
-			FG3M:      ps.colInt(row, "FG3M"),
-			FTM:       ps.colInt(row, "FTM"),
-			FTA:       ps.colInt(row, "FTA"),
-			PlusMinus: ps.colInt(row, "PLUS_MINUS"),
+			Points:    ps.colInt(row, "points"),
+			Rebounds:  ps.colInt(row, "reboundsTotal"),
+			Assists:   ps.colInt(row, "assists"),
+			Steals:    ps.colInt(row, "steals"),
+			Blocks:    ps.colInt(row, "blocks"),
+			Turnovers: ps.colInt(row, "turnovers"),
+			FGM:       ps.colInt(row, "fieldGoalsMade"),
+			FGA:       ps.colInt(row, "fieldGoalsAttempted"),
+			FG3M:      ps.colInt(row, "threePointersMade"),
+			FTM:       ps.colInt(row, "freeThrowsMade"),
+			FTA:       ps.colInt(row, "freeThrowsAttempted"),
+			PlusMinus: ps.colInt(row, "plusMinusPoints"),
 		}
 
 		if teamID == homeTeamID {
@@ -609,48 +572,49 @@ func appendQuarterScores(scores *[]int, slot int, q1, q2, q3, q4 *int) {
 	}
 }
 
-// parsePlayByPlay converts play-by-play events to api.MatchEvent slice.
-func parsePlayByPlay(resp playByPlayResponse) []api.MatchEvent {
+// parsePlayByPlayV3 converts play-by-play events (v3, camelCase) to api.MatchEvent slice.
+// v3 fields: actionType ("Made Shot"/"Foul"/"Timeout"), subType ("3PT"?), description,
+// teamId, period, clock ("PT02M34.00S"), scoreHome, scoreAway, playerName.
+func parsePlayByPlayV3(resp playByPlayV3Response) []api.MatchEvent {
 	pbp := findResultSet(resp.ResultSets, "PlayByPlay")
 
 	var events []api.MatchEvent
 	for _, row := range pbp.RowSet {
-		msgType := pbp.colInt(row, "EVENTMSGTYPE")
+		actionType := pbp.colStr(row, "actionType")
 
-		// Skip events we don't display
-		if msgType == eventStartPeriod || msgType == eventEndPeriod ||
-			msgType == eventRebound || msgType == eventViolation {
+		// Skip non-displayable actions
+		switch actionType {
+		case "period", "game", "rebound", "violation", "":
 			continue
 		}
 
-		period := pbp.colInt(row, "PERIOD")
-		clock := pbp.colStr(row, "PCTIMESTRING")
-		homeDesc := pbp.colStr(row, "HOMEDESCRIPTION")
-		awayDesc := pbp.colStr(row, "VISITORDESCRIPTION")
-		neutralDesc := pbp.colStr(row, "NEUTRALDESCRIPTION")
-		score := pbp.colStr(row, "SCORE")
+		period := pbp.colInt(row, "period")
+		clock := pbp.colStr(row, "clock")     // "PT02M34.00S"
+		clockFmt := formatISODuration(clock)  // → "2:34"
+		subType := pbp.colStr(row, "subType") // e.g. "3pt" for 3-pointers
+		desc := pbp.colStr(row, "description")
+		playerName := pbp.colStr(row, "playerNameI") // "J. Tatum"
+		teamIDVal := pbp.colInt(row, "teamId")
+		scoreHome := pbp.colStr(row, "scoreHome")
+		scoreAway := pbp.colStr(row, "scoreAway")
 
-		desc := homeDesc
-		if desc == "" {
-			desc = awayDesc
-		}
-		if desc == "" {
-			desc = neutralDesc
-		}
+		displayMinute := fmt.Sprintf("Q%d %s", period, clockFmt)
 
-		eventType := msgTypeToString(msgType)
-		displayMinute := fmt.Sprintf("Q%d %s", period, clock)
+		eventType := actionTypeToEventType(actionType)
 
 		event := api.MatchEvent{
-			ID:            pbp.colInt(row, "EVENTNUM"),
+			ID:            pbp.colInt(row, "actionId"),
 			Minute:        period * 12,
 			DisplayMinute: displayMinute,
 			Type:          eventType,
+			Team:          api.Team{ID: teamIDVal},
+		}
+		if playerName != "" {
+			event.Player = &playerName
 		}
 
-		// Detect 3-pointer and score events
-		if msgType == eventFieldGoalMade {
-			isThree := strings.Contains(desc, "3PT")
+		if actionType == "Made Shot" || actionType == "field_goal" {
+			isThree := strings.EqualFold(subType, "3pt")
 			event.IsThree = &isThree
 			pts := 2
 			if isThree {
@@ -658,17 +622,52 @@ func parsePlayByPlay(resp playByPlayResponse) []api.MatchEvent {
 			}
 			event.Points = &pts
 		}
-		if msgType == eventFreeThrowMade {
+		if actionType == "Free Throw" && strings.Contains(desc, "MADE") {
 			pts := 1
 			event.Points = &pts
 		}
 
-		_ = score // could be parsed to update running score
+		_ = scoreHome
+		_ = scoreAway
 
 		events = append(events, event)
 	}
 
 	return events
+}
+
+// actionTypeToEventType maps v3 actionType strings to internal event types.
+func actionTypeToEventType(actionType string) string {
+	switch actionType {
+	case "Made Shot", "field_goal":
+		return "field_goal"
+	case "Missed Shot":
+		return "field_goal_missed"
+	case "Free Throw":
+		return "free_throw"
+	case "Foul":
+		return "foul"
+	case "Substitution":
+		return "substitution"
+	case "Timeout":
+		return "timeout"
+	case "Jump Ball":
+		return "jump_ball"
+	case "Ejection":
+		return "ejection"
+	default:
+		return "other"
+	}
+}
+
+// formatISODuration converts "PT02M34.00S" → "2:34".
+// Returns the input unchanged if it does not match the expected format.
+func formatISODuration(s string) string {
+	var m, sec float64
+	if _, err := fmt.Sscanf(s, "PT%fM%fS", &m, &sec); err == nil {
+		return fmt.Sprintf("%d:%02d", int(m), int(sec))
+	}
+	return s
 }
 
 // msgTypeToString maps EVENTMSGTYPE to a human-readable event type.
@@ -717,6 +716,11 @@ var (
 // StoreGameID stores the string game ID for later retrieval by numeric ID.
 func StoreGameID(numericID int, stringID string) {
 	gameIDRegistry[numericID] = stringID
+}
+
+// storeGameID is a package-private alias used by MatchesByDate.
+func storeGameID(numericID int, stringID string) {
+	StoreGameID(numericID, stringID)
 }
 
 // storedGameID retrieves the string game ID for a numeric ID.

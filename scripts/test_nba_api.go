@@ -36,7 +36,8 @@ func (c *NBAClient) makeRequest(url string) (map[string]interface{}, error) {
 	}
 
 	// Required headers — without these the API returns 403.
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Host", "stats.nba.com")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
 	req.Header.Set("Referer", "https://www.nba.com/")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
@@ -71,7 +72,7 @@ func (c *NBAClient) makeRequest(url string) (map[string]interface{}, error) {
 }
 
 func (c *NBAClient) GetScoreboard(date string) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/scoreboard?GameDate=%s&LeagueID=00", baseURL, date)
+	url := fmt.Sprintf("%s/scoreboardv2?GameDate=%s&LeagueID=00&DayOffset=0", baseURL, date)
 	return c.makeRequest(url)
 }
 
