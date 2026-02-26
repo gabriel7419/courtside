@@ -43,22 +43,32 @@ A minimalist terminal UI (TUI) for following NBA games in real-time — live sco
 
 ## Installation
 
-> [!WARNING]
-> Not yet available — still under development.
-
 ### Build from source
 
 ```bash
 git clone https://github.com/gabriel7419/courtside.git
 cd courtside
-go build
+
+# Build it
+make build
+
+# Run it
 ./courtside
 ```
+
+Alternatively, you can install it globally via `make install` or `go install ./cmd/...`.
 
 ## Usage
 
 ```bash
 courtside
+
+# Or use the make command
+make run
+
+# Run with mock data (useful during the off-season or when no games are live)
+courtside --mock
+# or: make mock
 ```
 
 **Navigation:** `↑`/`↓` or `j`/`k` to move, `Enter` to select, `/` to filter, `Tab` to switch pane, `Esc` to go back, `q` to quit.
@@ -79,14 +89,14 @@ courtside
 ## Roadmap
 
 - [x] Project planning and documentation
-- [ ] NBA API integration (`internal/nba/`)
-- [ ] List today's games
-- [ ] Game details view
-- [ ] Live game polling
-- [ ] Statistics dialog
+- [x] NBA API integration (`internal/nba/`)
+- [x] List today's games
+- [x] Game details view
+- [x] Live game polling
+- [x] Statistics dialog
 - [ ] r/nba highlights integration
 - [ ] Desktop notifications
-- [ ] Playoff bracket view
+- [x] Playoff bracket view
 - [ ] WNBA support
 
 ## Contributing
