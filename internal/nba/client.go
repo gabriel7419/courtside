@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -163,28 +164,30 @@ func (c *Client) MatchesByDate(ctx context.Context, date time.Time) ([]api.Match
 		}
 
 		// Quick build of quarter scores from Periods (v3 includes them inline)
-		var quarterScores []int
-		if len(g.HomeTeam.Periods) > 0 {
-			for i := 0; i < len(g.HomeTeam.Periods) && i < len(g.AwayTeam.Periods); i++ {
-				quarterScores = append(quarterScores, g.HomeTeam.Periods[i].Score, g.AwayTeam.Periods[i].Score)
+		var qScores []int
+		for i, p := range g.HomeTeam.Periods {
+			var awayScore int
+			if len(g.AwayTeam.Periods) > i {
+				awayScore = g.AwayTeam.Periods[i].Score
 			}
+			qScores = append(qScores, p.Score, awayScore)
 		}
-		_ = quarterScores // used when building MatchDetails
 
 		m := api.Match{
-			ID:           numericID,
-			League:       api.League{Name: "NBA"},
-			HomeTeam:     homeTeam,
-			AwayTeam:     awayTeam,
-			Status:       status,
-			HomeScore:    &homeScore,
-			AwayScore:    &awayScore,
-			MatchTime:    matchTime,
-			LiveTime:     liveTime,
-			Quarter:      quarter,
-			Clock:        clock,
-			IsPlayoffs:   isPlayoffGame(g.GameID),
-			SeriesStatus: seriesStatus,
+			ID:            numericID,
+			League:        api.League{Name: "NBA"},
+			MatchTime:     matchTime,
+			Status:        status,
+			LiveTime:      liveTime,
+			HomeTeam:      homeTeam,
+			AwayTeam:      awayTeam,
+			HomeScore:     &homeScore,
+			AwayScore:     &awayScore,
+			Quarter:       quarter,
+			Clock:         clock,
+			IsPlayoffs:    isPlayoffGame(g.GameID),
+			SeriesStatus:  seriesStatus,
+			QuarterScores: qScores,
 		}
 		matches = append(matches, m)
 	}
@@ -195,7 +198,7 @@ func (c *Client) MatchesByDate(ctx context.Context, date time.Time) ([]api.Match
 
 // MatchDetails retrieves detailed information about a specific game.
 // gameID is the numeric ID stored in api.Match.ID.
-func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetails, error) {
+func (c *Client) MatchDetails(ctx context.Context, matchID int, fallbackMatch *api.Match) (*api.MatchDetails, error) {
 	if cached := c.cache.Details(matchID); cached != nil {
 		return cached, nil
 	}
@@ -214,10 +217,10 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 		return nil, fmt.Errorf("fetch box score summary for game %s: %w", gameIDStr, err)
 	}
 
-	details := parseSummary(summaryResp, matchID)
+	details := parseSummary(summaryResp, matchID, fallbackMatch)
 
-	// Fetch play-by-play for live games (v3)
-	if details.Status == api.MatchStatusLive {
+	// Fetch play-by-play for live AND finished games (v3)
+	if details.Status == api.MatchStatusLive || details.Status == api.MatchStatusFinished {
 		pbpURL := fmt.Sprintf("%s/playbyplayv3?GameID=%s&StartPeriod=1&EndPeriod=10", c.baseURL, gameIDStr)
 		var pbpResp playByPlayV3Response
 		if err := c.do(ctx, pbpURL, &pbpResp); err == nil {
@@ -233,6 +236,13 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 		home, away := parsePlayerStatsV3(statsResp, details.HomeTeam.ID)
 		details.HomePlayerStats = home
 		details.AwayPlayerStats = away
+	} else {
+		// Log the error silently
+		f, _ := os.OpenFile("debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if f != nil {
+			f.WriteString(fmt.Sprintf("ERROR boxscoretraditionalv3: %v\n", err))
+			f.Close()
+		}
 	}
 
 	c.cache.SetDetails(matchID, details)
@@ -240,9 +250,9 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 }
 
 // MatchDetailsForceRefresh bypasses the cache and fetches fresh game data.
-func (c *Client) MatchDetailsForceRefresh(ctx context.Context, matchID int) (*api.MatchDetails, error) {
+func (c *Client) MatchDetailsForceRefresh(ctx context.Context, matchID int, fallbackMatch *api.Match) (*api.MatchDetails, error) {
 	c.cache.ClearDetails(matchID)
-	return c.MatchDetails(ctx, matchID)
+	return c.MatchDetails(ctx, matchID, fallbackMatch)
 }
 
 // LiveMatches returns currently live NBA games.
@@ -279,6 +289,23 @@ func (c *Client) Leagues(_ context.Context) ([]api.League, error) {
 // LeagueMatches returns an empty slice (use MatchesByDate instead).
 func (c *Client) LeagueMatches(_ context.Context, _ int) ([]api.Match, error) {
 	return []api.Match{}, nil
+}
+
+// MatchFromCache attempts to find a match in the cache across recent dates.
+// This is used to provide the scoreboard fallback data to MatchDetails.
+func (c *Client) MatchFromCache(matchID int) *api.Match {
+	// Look through today and the last few days
+	today := time.Now().UTC()
+	for i := 0; i <= 5; i++ {
+		dateStr := today.AddDate(0, 0, -i).Format("2006-01-02")
+		matches := c.cache.Matches(dateStr)
+		for _, m := range matches {
+			if m.ID == matchID {
+				return &m
+			}
+		}
+	}
+	return nil
 }
 
 // LeagueTable returns NBA standings for the requested conference.
@@ -370,7 +397,7 @@ func currentNBASeason() string {
 // --- Parsing helpers ---
 
 // parseSummary converts a boxScoreSummaryResponse to api.MatchDetails.
-func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
+func parseSummary(resp boxScoreSummaryResponse, matchID int, fallbackMatch *api.Match) *api.MatchDetails {
 	gs := findResultSet(resp.ResultSets, "GameSummary")
 	ls := findResultSet(resp.ResultSets, "LineScore")
 	gi := findResultSet(resp.ResultSets, "GameInfo")
@@ -442,6 +469,35 @@ func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
 		details.Overtime = livePeriod > 4
 		if details.Overtime {
 			details.ExtraTime = true
+		}
+	}
+
+	// Fallback to MatchesByDate data if the summary returned "Not Started" and empty scores
+	// for a game that we know from the scoreboard is actually Finished.
+	if fallbackMatch != nil {
+		if details.Status == api.MatchStatusNotStarted && fallbackMatch.Status == api.MatchStatusFinished {
+			details.Status = api.MatchStatusFinished
+			if details.HomeScore == nil {
+				details.HomeScore = fallbackMatch.HomeScore
+			}
+			if details.AwayScore == nil {
+				details.AwayScore = fallbackMatch.AwayScore
+			}
+			if details.LiveTime == nil {
+				details.LiveTime = fallbackMatch.LiveTime
+			}
+			// Use the team info from the scoreboard to avoid "ERR"
+			if details.HomeTeam.Name == "" {
+				details.HomeTeam = fallbackMatch.HomeTeam
+			}
+			if details.AwayTeam.Name == "" {
+				details.AwayTeam = fallbackMatch.AwayTeam
+			}
+		}
+
+		// Always copy quarter scores if the summary dropped them (e.g past finished games)
+		if len(details.QuarterScores) == 0 && len(fallbackMatch.QuarterScores) > 0 {
+			details.QuarterScores = fallbackMatch.QuarterScores
 		}
 	}
 

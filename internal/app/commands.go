@@ -89,7 +89,8 @@ func fetchMatchDetails(client *nba.Client, matchID int, useMockData bool) tea.Cm
 		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
-		details, err := client.MatchDetails(ctx, matchID)
+		fallback := client.MatchFromCache(matchID)
+		details, err := client.MatchDetails(ctx, matchID, fallback)
 		if err != nil {
 			return matchDetailsMsg{}
 		}
@@ -108,7 +109,8 @@ func fetchMatchDetailsForceRefresh(client *nba.Client, matchID int, useMockData 
 		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
-		details, err := client.MatchDetailsForceRefresh(ctx, matchID)
+		fallback := client.MatchFromCache(matchID)
+		details, err := client.MatchDetailsForceRefresh(ctx, matchID, fallback)
 		if err != nil {
 			return matchDetailsMsg{}
 		}
@@ -144,7 +146,8 @@ func fetchPollMatchDetails(client *nba.Client, matchID int, useMockData bool) te
 		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
-		details, err := client.MatchDetailsForceRefresh(ctx, matchID)
+		fallback := client.MatchFromCache(matchID)
+		details, err := client.MatchDetailsForceRefresh(ctx, matchID, fallback)
 		if err != nil {
 			return matchDetailsMsg{}
 		}
@@ -217,17 +220,18 @@ func fetchStatsDayData(client *nba.Client, useMockData bool, dayIndex int, total
 func fetchStatsMatchDetails(client *nba.Client, matchID int, useMockData bool) tea.Cmd {
 	return func() tea.Msg {
 		if useMockData {
-			details, _ := data.MockFinishedMatchDetails(matchID)
+			details, _ := data.MockNBAMatchDetails(matchID)
 			return matchDetailsMsg{details: details}
 		}
 		if client == nil {
 			return matchDetailsMsg{}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
-		details, err := client.MatchDetails(ctx, matchID)
+		fallback := client.MatchFromCache(matchID)
+		details, err := client.MatchDetails(ctx, matchID, fallback)
 		if err != nil {
 			return matchDetailsMsg{}
 		}

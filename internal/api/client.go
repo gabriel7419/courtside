@@ -11,8 +11,11 @@ type Client interface {
 	// MatchesByDate retrieves all matches for a specific date.
 	MatchesByDate(ctx context.Context, date time.Time) ([]Match, error)
 
-	// MatchDetails retrieves detailed information about a specific match.
-	MatchDetails(ctx context.Context, matchID int) (*MatchDetails, error)
+	// MatchDetails retrieves detailed match info (events, box scores).
+	// fallbackMatch can be provided so that if the detailed endpoints return
+	// empty/corrupted status (e.g., past NBA games), the original correct
+	// score and status are preserved.
+	MatchDetails(ctx context.Context, matchID int, fallbackMatch *Match) (*MatchDetails, error)
 
 	// Leagues retrieves available leagues.
 	Leagues(ctx context.Context) ([]League, error)

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/gabriel7419/courtside/internal/nba"
 )
 
 const (
@@ -132,6 +135,58 @@ func main() {
 	flag.Parse()
 
 	client := NewNBAClient()
+
+	if *endpoint == "test_internal" {
+		client := nba.NewClient()
+		ctx := context.Background()
+		date := time.Now().UTC().AddDate(0, 0, -1)
+		fmt.Printf("Fetching MatchesByDate for %v...\n", date.Format("2006-01-02"))
+		matches, err := client.MatchesByDate(ctx, date)
+		if err != nil {
+			fmt.Printf("ERROR MatchesByDate: %v\n", err)
+			return
+		}
+		if len(matches) > 0 {
+			m := matches[0]
+			fmt.Printf("Found match: %s vs %s (ID: %d). Fetching MatchDetails...\n", m.HomeTeam.ShortName, m.AwayTeam.ShortName, m.ID)
+			details, err := client.MatchDetails(ctx, m.ID, &m)
+			if err != nil {
+				fmt.Printf("ERROR MatchDetails: %v\n", err)
+			} else {
+				fmt.Printf("SUCCESS:\n")
+				fmt.Printf("  Status: %v\n", details.Status)
+				fmt.Printf("  LiveTime: %v\n", *details.LiveTime)
+				fmt.Printf("  Home: %s, Score: %v\n", details.HomeTeam.ShortName, details.HomeScore)
+				fmt.Printf("  Away: %s, Score: %v\n", details.AwayTeam.ShortName, details.AwayScore)
+				if len(details.QuarterScores) > 0 {
+					fmt.Printf("  Quarters: %v\n", details.QuarterScores)
+				}
+			}
+		} else {
+			fmt.Println("No matches found for yesterday.")
+		}
+
+		fmt.Println("\n--- Fetching Raw boxscoretraditionalv3 ---")
+		if len(matches) > 0 {
+			gameIDStr := fmt.Sprintf("%010d", matches[0].ID)
+			url := fmt.Sprintf("https://stats.nba.com/stats/boxscoretraditionalv3?GameID=%s&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0", gameIDStr)
+			req, _ := http.NewRequest("GET", url, nil)
+			req.Header.Set("User-Agent", "Mozilla/5.0")
+			req.Header.Set("Referer", "https://www.nba.com/")
+			req.Header.Set("x-nba-stats-origin", "stats")
+			req.Header.Set("x-nba-stats-token", "true")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				fmt.Println("Error:", err)
+			} else {
+				defer resp.Body.Close()
+				body, _ := io.ReadAll(resp.Body)
+				fmt.Println(string(body)[:2000]) // print first 2000 chars
+			}
+		}
+
+		return
+	}
 
 	var result map[string]interface{}
 	var err error

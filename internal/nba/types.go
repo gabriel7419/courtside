@@ -5,6 +5,7 @@ package nba
 
 import (
 	"fmt"
+	"strconv"
 )
 
 // The NBA Stats API returns data in a tabular format: each resultSet has
@@ -51,6 +52,10 @@ func (rs resultSet) colInt(row []interface{}, field string) int {
 		return int(val)
 	case int:
 		return val
+	case string:
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
 	}
 	return 0
 }
@@ -67,6 +72,10 @@ func (rs resultSet) colIntPtr(row []interface{}, field string) *int {
 		return &n
 	case int:
 		return &val
+	case string:
+		if i, err := strconv.Atoi(val); err == nil {
+			return &i
+		}
 	}
 	return nil
 }
@@ -77,8 +86,15 @@ func (rs resultSet) colFloat(row []interface{}, field string) float64 {
 	if v == nil {
 		return 0
 	}
-	if f, ok := v.(float64); ok {
-		return f
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int:
+		return float64(val)
+	case string:
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return f
+		}
 	}
 	return 0
 }

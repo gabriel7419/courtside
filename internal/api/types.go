@@ -46,10 +46,11 @@ type Match struct {
 	PageURL   string      `json:"page_url,omitempty"`
 
 	// NBA-specific fields
-	Quarter      *int    `json:"quarter,omitempty"` // 1-4, 5+ = OT
-	Clock        *string `json:"clock,omitempty"`   // "2:34"
-	IsPlayoffs   bool    `json:"is_playoffs,omitempty"`
-	SeriesStatus *string `json:"series_status,omitempty"` // "Series tied 2-2"
+	Quarter       *int    `json:"quarter,omitempty"` // 1-4, 5+ = OT
+	Clock         *string `json:"clock,omitempty"`   // "2:34"
+	IsPlayoffs    bool    `json:"is_playoffs,omitempty"`
+	SeriesStatus  *string `json:"series_status,omitempty"`  // "Series tied 2-2"
+	QuarterScores []int   `json:"quarter_scores,omitempty"` // [Q1home, Q1away, Q2home, Q2away, ...] cached from scoreboard
 }
 
 // MatchEvent represents an event during a match (goal, card, field goal, foul, etc.).
