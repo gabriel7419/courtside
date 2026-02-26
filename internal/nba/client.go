@@ -381,7 +381,9 @@ func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
 	if len(gs.RowSet) > 0 {
 		row := gs.RowSet[0]
 		statusID := gs.colInt(row, "GAME_STATUS_ID")
+		statusText := gs.colStr(row, "GAME_STATUS_TEXT") // "Final", "Q3 2:34", "7:30 pm ET"
 		livePeriod := gs.colInt(row, "LIVE_PERIOD")
+		livePcTime := gs.colStr(row, "LIVE_PC_TIME") // remaining clock e.g "PT02M34.00S"
 
 		switch statusID {
 		case gameStatusScheduled:
@@ -390,6 +392,18 @@ func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
 			details.Status = api.MatchStatusLive
 		case gameStatusFinal:
 			details.Status = api.MatchStatusFinished
+		}
+
+		// LiveTime — shown in the header below the score
+		statusText = strings.TrimSpace(statusText)
+		if statusText != "" {
+			details.LiveTime = &statusText
+		}
+
+		// Live clock from LIVE_PC_TIME ("PT02M34.00S" → "2:34")
+		if livePcTime != "" && details.Status == api.MatchStatusLive {
+			clockFmt := formatISODuration(livePcTime)
+			details.Clock = &clockFmt
 		}
 
 		homeTeamID := gs.colInt(row, "HOME_TEAM_ID")
@@ -431,9 +445,20 @@ func parseSummary(resp boxScoreSummaryResponse, matchID int) *api.MatchDetails {
 		}
 	}
 
-	// Attendance from GameInfo
+	// Attendance and arena from GameInfo
 	if len(gi.RowSet) > 0 {
-		details.Attendance = gi.colInt(gi.RowSet[0], "ATTENDANCE")
+		giRow := gi.RowSet[0]
+		details.Attendance = gi.colInt(giRow, "ATTENDANCE")
+		arena := gi.colStr(giRow, "GAME_TIME") // GameInfo has GAME_TIME; arena comes from GameSummary
+		_ = arena
+	}
+
+	// Arena name is in GameSummary
+	if len(gs.RowSet) > 0 {
+		arena := gs.colStr(gs.RowSet[0], "ARENA_NAME")
+		if arena != "" {
+			details.Venue = arena
+		}
 	}
 
 	return details

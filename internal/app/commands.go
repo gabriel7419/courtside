@@ -80,11 +80,13 @@ func scheduleLiveRefresh(client *nba.Client, useMockData bool) tea.Cmd {
 func fetchMatchDetails(client *nba.Client, matchID int, useMockData bool) tea.Cmd {
 	return func() tea.Msg {
 		if useMockData {
-			details, _ := data.MockMatchDetails(matchID)
+			details, _ := data.MockNBAMatchDetails(matchID)
 			return matchDetailsMsg{details: details}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		// 45s: MatchDetails makes up to 3 sequential API calls
+		// (boxscoresummaryv2 + boxscoretraditionalv3 + playbyplayv3)
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
 		details, err := client.MatchDetails(ctx, matchID)
@@ -103,7 +105,7 @@ func fetchMatchDetailsForceRefresh(client *nba.Client, matchID int, useMockData 
 			return matchDetailsMsg{details: details}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
 		details, err := client.MatchDetailsForceRefresh(ctx, matchID)
@@ -139,7 +141,7 @@ func fetchPollMatchDetails(client *nba.Client, matchID int, useMockData bool) te
 			return matchDetailsMsg{details: details}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 
 		details, err := client.MatchDetailsForceRefresh(ctx, matchID)

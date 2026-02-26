@@ -70,9 +70,12 @@ func RenderMatchDetails(cfg MatchDetailsConfig) (headerContent, scrollableConten
 	headerLines = append(headerLines, lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Center).Render(teamsDisplay))
 	headerLines = append(headerLines, "")
 
-	// Large score
+	// Large score — show if scores are available (nil = not started, 0 = started with 0 pts)
 	if details.HomeScore != nil && details.AwayScore != nil {
 		headerLines = append(headerLines, renderLargeScore(*details.HomeScore, *details.AwayScore, contentWidth))
+	} else if details.Status == api.MatchStatusLive || details.Status == api.MatchStatusFinished {
+		// Fallback: API returned nil scores for a started game — show 0-0
+		headerLines = append(headerLines, renderLargeScore(0, 0, contentWidth))
 	} else {
 		vsText := lipgloss.NewStyle().
 			Foreground(neonDim).
@@ -191,8 +194,8 @@ func renderMatchContext(details *api.MatchDetails, contentWidth int) []string {
 		lines = append(lines, neonLabelStyle.Render("Attendance:  ")+neonValueStyle.Render(formatNumber(details.Attendance)))
 	}
 
-	// Quarter-by-quarter scores (NBA)
-	if len(details.QuarterScores) >= 8 {
+	// Quarter-by-quarter scores (NBA) — show as soon as we have at least one quarter
+	if len(details.QuarterScores) >= 2 {
 		// format: [Q1home, Q1away, Q2home, Q2away, ...]
 		var qParts []string
 		for q := 0; q < len(details.QuarterScores)/2; q++ {
