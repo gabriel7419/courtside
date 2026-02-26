@@ -47,13 +47,21 @@ func (c *Client) do(ctx context.Context, url string, dst interface{}) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 
-	// These headers are required — without them the API returns 403.
+	// These headers are required — without them the API returns 403 or times out.
+	// Mirrors the headers used by the nba_api Python library.
 	req.Header.Set("Host", "stats.nba.com")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-	req.Header.Set("Referer", "https://www.nba.com/")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	// Note: do NOT set Accept-Encoding — Go's http.Client handles gzip transparently
+	req.Header.Set("Referer", "https://www.nba.com/")
 	req.Header.Set("Origin", "https://www.nba.com")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("x-nba-stats-origin", "stats")
+	req.Header.Set("x-nba-stats-token", "true")
+	req.Header.Set("Sec-Fetch-Site", "same-site")
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Dest", "empty")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

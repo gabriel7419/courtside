@@ -24,7 +24,7 @@ type NBAClient struct {
 func NewNBAClient() *NBAClient {
 	return &NBAClient{
 		httpClient: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 	}
 }
@@ -35,13 +35,21 @@ func (c *NBAClient) makeRequest(url string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	// Required headers — without these the API returns 403.
+	// Required headers — without these the API returns 403 or times out.
+	// Mirrors the headers used by the nba_api Python library.
 	req.Header.Set("Host", "stats.nba.com")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-	req.Header.Set("Referer", "https://www.nba.com/")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	// Note: do NOT set Accept-Encoding — Go's http.Client handles gzip transparently
+	req.Header.Set("Referer", "https://www.nba.com/")
 	req.Header.Set("Origin", "https://www.nba.com")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("x-nba-stats-origin", "stats")
+	req.Header.Set("x-nba-stats-token", "true")
+	req.Header.Set("Sec-Fetch-Site", "same-site")
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Dest", "empty")
 
 	fmt.Printf("🔄 Making request to: %s\n", url)
 
@@ -72,7 +80,7 @@ func (c *NBAClient) makeRequest(url string) (map[string]interface{}, error) {
 }
 
 func (c *NBAClient) GetScoreboard(date string) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/scoreboardv2?GameDate=%s&LeagueID=00&DayOffset=0", baseURL, date)
+	url := fmt.Sprintf("%s/scoreboardv3?GameDate=%s&LeagueID=00", baseURL, date)
 	return c.makeRequest(url)
 }
 
@@ -82,7 +90,7 @@ func (c *NBAClient) GetBoxScoreSummary(gameID string) (map[string]interface{}, e
 }
 
 func (c *NBAClient) GetBoxScoreTraditional(gameID string) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/boxscoretraditionalv2?GameID=%s&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0", baseURL, gameID)
+	url := fmt.Sprintf("%s/boxscoretraditionalv3?GameID=%s&StartPeriod=1&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0", baseURL, gameID)
 	return c.makeRequest(url)
 }
 
@@ -93,7 +101,7 @@ func (c *NBAClient) GetStandings(season string) (map[string]interface{}, error) 
 }
 
 func (c *NBAClient) GetPlayByPlay(gameID string) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/playbyplayv2?GameID=%s&StartPeriod=1&EndPeriod=10", baseURL, gameID)
+	url := fmt.Sprintf("%s/playbyplayv3?GameID=%s&StartPeriod=1&EndPeriod=10", baseURL, gameID)
 	return c.makeRequest(url)
 }
 
